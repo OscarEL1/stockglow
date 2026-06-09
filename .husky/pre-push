@@ -1,0 +1,10 @@
+branch=$(git symbolic-ref HEAD | sed 's|refs/heads/||')
+valid_pattern="^(main|develop|feature|fix|hotfix|release|chore)\/[a-z0-9][a-z0-9-]*$"
+if ! echo "$branch" | grep -qE "$valid_pattern"; then
+  echo ""
+  echo "  ERROR: La rama '$branch' no sigue la convencion de StockGlow."
+  echo "  Formato valido: tipo/descripcion-en-kebab-case"
+  echo "  Ejemplo: feature/inventory-plugin"
+  echo ""
+  exit 1
+fi
