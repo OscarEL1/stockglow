@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Fastify from 'fastify'
 import { env } from './lib/env.js'
 import { clerkAuth } from './plugins/clerk.js'
