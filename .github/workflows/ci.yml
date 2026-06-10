@@ -1,41 +1,33 @@
-name: CI
-
-permissions:
-  contents: read
+name: CI Pipeline
 
 on:
   pull_request:
     branches:
-      - develop
       - main
+      - develop
 
 jobs:
-  ci:
+  continuous-integration:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: pnpm
+          node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
-      - name: Run lint
-        run: pnpm lint
+      - name: Run Lint
+        run: npm run lint
 
-      - name: Run typecheck
-        run: pnpm typecheck
+      - name: Run Type-check
+        run: npm run type-check
 
-      - name: Run tests
-        run: pnpm test
+      - name: Run Tests
+        run: npm run test
