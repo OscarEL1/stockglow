@@ -1,5 +1,5 @@
 branch=$(git symbolic-ref HEAD | sed 's|refs/heads/||')
-valid_pattern="^(main|develop|feature|fix|hotfix|release|chore)\/[a-z0-9][a-z0-9-]*$"
+valid_pattern="^(main|develop|feature|fix|hotfix|release|chore)/[a-z0-9][a-z0-9-]*$"
 permanent_branches="^(main|develop)$"
 
 if echo "$branch" | grep -qE "$permanent_branches"; then
