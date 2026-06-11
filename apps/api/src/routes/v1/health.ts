@@ -1,16 +1,11 @@
 import type { FastifyInstance } from 'fastify'
+import { successResponse } from '../../lib/response.js'
 
 export async function healthRoutes(fastify: FastifyInstance) {
   fastify.get('/health', async () => {
-    return {
-      success: true,
-      data: {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-      },
-      meta: {
-        version: 'v1',
-      },
-    }
+    return successResponse({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    })
   })
 }

@@ -1,8 +1,9 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import { env } from './lib/env.js'
-import { clerkAuth } from './plugins/clerk.js'
 import { security } from './plugins/security.js'
+import { clerkAuth } from './plugins/clerk.js'
+import { errorHandler } from './plugins/error-handler.js'
 import { healthRoutes } from './routes/v1/health.js'
 
 const fastify = Fastify({
@@ -13,6 +14,8 @@ const fastify = Fastify({
 
 await fastify.register(security)
 await fastify.register(clerkAuth)
+await fastify.register(errorHandler)
+
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
 
 try {
