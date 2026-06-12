@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import Fastify from 'fastify'
-import { successResponse } from '../../lib/response.js'
+import { successResponse } from '../../../lib/response'
 
 // Mock de prisma para no necesitar BD ni variables de entorno en CI
 vi.mock('../../../lib/prisma.js', () => ({
