@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import Fastify from 'fastify'
 import { productRoutes } from '../products.js'
-import { errorHandler } from '../../plugins/error-handler.js'
+import { errorHandler } from '../../../plugins/error-handler.js'
 
 describe('GET /api/v1/inventory/products', () => {
   it('debe retornar solo productos del tenant autenticado', async () => {
