@@ -5,6 +5,8 @@ import { security } from './plugins/security.js'
 import { clerkAuth } from './plugins/clerk.js'
 import { errorHandler } from './plugins/error-handler.js'
 import { healthRoutes } from './routes/v1/health.js'
+import { productRoutes } from './routes/v1/products.js'
+import { variantRoutes } from './routes/v1/variants.js'
 
 const fastify = Fastify({
   logger: {
@@ -17,6 +19,8 @@ await fastify.register(clerkAuth)
 await fastify.register(errorHandler)
 
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
+await fastify.register(productRoutes, { prefix: '/api/v1/inventory/products' })
+await fastify.register(variantRoutes, { prefix: '/api/v1/inventory/variants' })
 
 try {
   await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
