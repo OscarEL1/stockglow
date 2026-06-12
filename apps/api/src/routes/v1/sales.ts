@@ -1,12 +1,21 @@
 import type { FastifyInstance } from 'fastify'
+import type { Decimal } from '@prisma/client/runtime/library.js'
 import { prisma } from '../../lib/prisma.js'
-import { redis, acquireLock, releaseLock, lockKey } from '../../lib/redis.js'
+import { acquireLock, releaseLock, lockKey } from '../../lib/redis.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
 import { createSaleSchema } from '../../schemas/sale.schema.js'
 
+interface DetalleItem {
+  varianteId: string
+  cantidad: number
+  precioUnitario: Decimal
+  newStock: number
+  stockMinimo: number
+  sku: string
+}
+
 export async function saleRoutes(fastify: FastifyInstance) {
-  // POST /api/v1/sales
   fastify.post(
     '/',
     {
@@ -40,16 +49,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
           const key = lockKey(tenantId, variant!.sku)
           const acquired = await acquireLock(key, 5)
 
-          if (!acquired) {
-            throw Errors.LOCK_NOT_ACQUIRED()
-          }
+          if (!acquired) throw Errors.LOCK_NOT_ACQUIRED()
 
           locks.push(key)
         }
 
-        // 3. Ejecutar transaccion atomica
+        // 3. Construir detalles con tipo explícito
         let total = 0
-        const detalles = []
+        const detalles: DetalleItem[] = []
 
         for (const item of input.items) {
           const variant = await prisma.varianteProducto.findFirst({
@@ -69,12 +76,14 @@ export async function saleRoutes(fastify: FastifyInstance) {
           })
         }
 
+        // 4. Ejecutar transaccion atomica
+        const currentUserId = userId
+
         const venta = await prisma.$transaction(async (tx) => {
-          // Crear la venta
           const nuevaVenta = await tx.venta.create({
             data: {
               tenantId,
-              usuarioId: userId,
+              usuarioId: currentUserId,
               total,
               estado: 'COMPLETADA',
               detalles: {
@@ -88,7 +97,6 @@ export async function saleRoutes(fastify: FastifyInstance) {
             include: { detalles: true },
           })
 
-          // Actualizar stock y registrar movimientos
           for (const d of detalles) {
             await tx.varianteProducto.update({
               where: { id: d.varianteId },
@@ -99,14 +107,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
               data: {
                 tenantId,
                 varianteId: d.varianteId,
-                usuarioId,
+                usuarioId: currentUserId,
                 tipo: 'ENTRADA',
                 cantidad: -d.cantidad,
                 motivo: `Venta #${nuevaVenta.id}`,
               },
             })
 
-            // Generar alerta si stock bajo
             if (d.newStock <= d.stockMinimo) {
               await tx.alerta.create({
                 data: {
@@ -124,7 +131,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
         return reply.status(201).send(successResponse(venta))
       } finally {
-        // 4. Liberar locks siempre — incluso si la transaccion falla
+        // 5. Liberar locks siempre
         for (const key of locks) {
           await releaseLock(key)
         }
