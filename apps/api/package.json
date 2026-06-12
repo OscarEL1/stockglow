@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "prisma": {
+  "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@clerk/fastify": "2.5.1",
     "@fastify/cors": "11.0.1",
