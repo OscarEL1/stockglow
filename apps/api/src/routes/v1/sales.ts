@@ -131,15 +131,22 @@ export async function saleRoutes(fastify: FastifyInstance) {
         })
 
         // 5. Emitir evento WebSocket al dashboard del dueno
-        emitToTenant(tenantId, 'stock:update', {
-          ventaId: venta.id,
-          items: detalles.map((d) => ({
-            varianteId: d.varianteId,
-            sku: d.sku,
-            stockActual: d.newStock,
-          })),
-          timestamp: new Date().toISOString(),
-        })
+        try {
+          emitToTenant(tenantId, 'stock:update', {
+            ventaId: venta.id,
+            items: detalles.map((d) => ({
+              varianteId: d.varianteId,
+              sku: d.sku,
+              stockActual: d.newStock,
+            })),
+            timestamp: new Date().toISOString(),
+          })
+        } catch (wsErr) {
+          fastify.log.warn(
+            { wsErr },
+            'WebSocket emit fallo pero la venta fue confirmada'
+          )
+        }
 
         return reply.status(201).send(successResponse(venta))
       } finally {

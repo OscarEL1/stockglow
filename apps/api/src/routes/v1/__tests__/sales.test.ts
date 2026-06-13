@@ -61,10 +61,9 @@ describe('WebSocket — emitToTenant', () => {
     )
   })
 
-  it('una falla de websocket no afecta el status 201 de la venta', () => {
-    const result = successResponse({ id: 'venta-001', total: 120 })
-    expect(result.success).toBe(true)
-  })
+  it.todo(
+    'una falla de WebSocket no afecta el status 201 - pendiente test de integración con fastify.inject'
+  )
 })
 
 describe('Flujo de venta — status codes', () => {
