@@ -29,7 +29,7 @@ await fastify.register(saleRoutes, { prefix: '/api/v1/sales' })
 try {
   await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
   console.log(`Server running on port ${env.PORT}`)
-  if (env.NODE_ENV !== 'development') {
+  if (env.NODE_ENV === 'development') {
     console.log(
       `WebSocket endpoint: ws://localhost:${env.PORT}/api/v1/ws/{tenantId}`
     )
