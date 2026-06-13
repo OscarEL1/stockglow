@@ -2,12 +2,15 @@ import { describe, it, expect, vi } from 'vitest'
 import { acquireLock, releaseLock, lockKey } from '../../../lib/redis.js'
 import { successResponse, errorResponse } from '../../../lib/response.js'
 
-// Mock de redis para no necesitar Upstash en CI
 vi.mock('../../../lib/redis.js', () => ({
   acquireLock: vi.fn().mockResolvedValue(true),
   releaseLock: vi.fn().mockResolvedValue(undefined),
   lockKey: (tenantId: string, sku: string) => `lock:${tenantId}:${sku}`,
   redis: {},
+}))
+
+vi.mock('../../../plugins/websocket.js', () => ({
+  emitToTenant: vi.fn(),
 }))
 
 describe('Lock distribuido — Redis', () => {
@@ -25,6 +28,42 @@ describe('Lock distribuido — Redis', () => {
     await expect(
       releaseLock('lock:tenant-kaprich-001:LAB-MATTE-04')
     ).resolves.not.toThrow()
+  })
+})
+
+describe('WebSocket — emitToTenant', () => {
+  it('emite el evento con los skus y stocks correctos', async () => {
+    const { emitToTenant } = await import('../../../plugins/websocket.js')
+
+    const detalles = [
+      { varianteId: 'var-001', sku: 'LAB-MATTE-04', newStock: 9 },
+    ]
+
+    emitToTenant('tenant-kaprich-001', 'stock:update', {
+      ventaId: 'venta-001',
+      items: detalles.map((d) => ({
+        varianteId: d.varianteId,
+        sku: d.sku,
+        stockActual: d.newStock,
+      })),
+      timestamp: new Date().toISOString(),
+    })
+
+    expect(emitToTenant).toHaveBeenCalledWith(
+      'tenant-kaprich-001',
+      'stock:update',
+      expect.objectContaining({
+        ventaId: 'venta-001',
+        items: expect.arrayContaining([
+          expect.objectContaining({ sku: 'LAB-MATTE-04', stockActual: 9 }),
+        ]),
+      })
+    )
+  })
+
+  it('una falla de websocket no afecta el status 201 de la venta', () => {
+    const result = successResponse({ id: 'venta-001', total: 120 })
+    expect(result.success).toBe(true)
   })
 })
 

@@ -1,7 +1,16 @@
 import fp from 'fastify-plugin'
 import fastifyWebsocket from '@fastify/websocket'
+import { Errors } from '../lib/errors.js'
 
 const tenantConnections = new Map<string, Set<any>>()
+
+function cleanup(tenantId: string, socket: any) {
+  const set = tenantConnections.get(tenantId)
+  set?.delete(socket)
+  if (set && set.size === 0) {
+    tenantConnections.delete(tenantId)
+  }
+}
 
 export const websocketPlugin = fp(async (fastify) => {
   await fastify.register(fastifyWebsocket)
@@ -10,12 +19,19 @@ export const websocketPlugin = fp(async (fastify) => {
     '/api/v1/ws/:tenantId',
     {
       websocket: true,
+      preHandler: [
+        fastify.authenticate,
+        async (request: any) => {
+          if (request.params.tenantId !== request.tenantId) {
+            throw Errors.FORBIDDEN()
+          }
+        },
+      ],
     },
     (connection, request: any) => {
       const { tenantId } = request.params
       const socket = connection.socket
 
-      // Registrar conexion del tenant
       if (!tenantConnections.has(tenantId)) {
         tenantConnections.set(tenantId, new Set())
       }
@@ -24,13 +40,15 @@ export const websocketPlugin = fp(async (fastify) => {
       fastify.log.info(`WebSocket conectado — tenant: ${tenantId}`)
 
       socket.on('close', () => {
-        const set = tenantConnections.get(tenantId)
-        set?.delete(socket)
-        // Limpiar el tenant del Map si no quedan conexiones
-        if (set && set.size === 0) {
-          tenantConnections.delete(tenantId)
-        }
+        cleanup(tenantId, socket)
         fastify.log.info(`WebSocket desconectado — tenant: ${tenantId}`)
+      })
+
+      socket.on('error', (err: Error) => {
+        fastify.log.error(
+          `WebSocket error — tenant: ${tenantId} — ${err.message}`
+        )
+        cleanup(tenantId, socket)
       })
 
       socket.send(
@@ -55,16 +73,13 @@ export function emitToTenant(tenantId: string, event: string, data: unknown) {
       try {
         socket.send(message)
       } catch (err) {
-        // Socket falló — marcarlo para purgar
         deadSockets.push(socket)
       }
     } else {
-      // Socket no está abierto — purgar
       deadSockets.push(socket)
     }
   }
 
-  // Purgar sockets muertos
   for (const socket of deadSockets) {
     connections.delete(socket)
   }
