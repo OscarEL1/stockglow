@@ -21,6 +21,7 @@
     "@fastify/helmet": "13.0.1",
     "@fastify/jwt": "9.1.0",
     "@fastify/rate-limit": "11.0.0",
+    "@fastify/websocket": "11.0.2",
     "@prisma/client": "6.8.2",
     "@upstash/redis": "1.34.3",
     "dotenv": "16.5.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "22.15.21",
+    "@types/ws": "8.5.14",
     "prisma": "6.8.2",
     "tsx": "4.19.4",
     "typescript": "5.8.3",
