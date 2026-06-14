@@ -31,7 +31,7 @@ export const websocketPlugin = fp(async (fastify) => {
     },
     (connection, request: any) => {
       const { tenantId } = request.params
-      const socket = connection.socket as WebSocket
+      const socket = connection as unknown as WebSocket
 
       if (!tenantConnections.has(tenantId)) {
         tenantConnections.set(tenantId, new Set<WebSocket>())
