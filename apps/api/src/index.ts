@@ -5,6 +5,7 @@ import { security } from './plugins/security.js'
 import { clerkAuth } from './plugins/clerk.js'
 import { errorHandler } from './plugins/error-handler.js'
 import { swaggerDocs } from './plugins/swagger.js'
+import { websocketPlugin } from './plugins/websocket.js'
 import { healthRoutes } from './routes/v1/health.js'
 import { productRoutes } from './routes/v1/products.js'
 import { variantRoutes } from './routes/v1/variants.js'
@@ -20,6 +21,7 @@ await fastify.register(security)
 await fastify.register(clerkAuth)
 await fastify.register(errorHandler)
 await fastify.register(swaggerDocs)
+await fastify.register(websocketPlugin)
 
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
 await fastify.register(productRoutes, { prefix: '/api/v1/inventory/products' })
@@ -31,6 +33,9 @@ try {
   console.log(`Server running on port ${env.PORT}`)
   if (env.NODE_ENV === 'development') {
     console.log(`Docs disponibles en http://localhost:${env.PORT}/api/v1/docs`)
+    console.log(
+      `WebSocket endpoint: ws://localhost:${env.PORT}/api/v1/ws/{tenantId}`
+    )
   }
 } catch (err) {
   fastify.log.error(err)

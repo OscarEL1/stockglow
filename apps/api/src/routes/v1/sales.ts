@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { Decimal } from '@prisma/client/runtime/library.js'
 import { prisma } from '../../lib/prisma.js'
 import { acquireLock, releaseLock, lockKey } from '../../lib/redis.js'
+import { emitToTenant } from '../../plugins/websocket.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
 import { createSaleSchema } from '../../schemas/sale.schema.js'
@@ -129,9 +130,27 @@ export async function saleRoutes(fastify: FastifyInstance) {
           return nuevaVenta
         })
 
+        // 5. Emitir evento WebSocket al dashboard del dueno
+        try {
+          emitToTenant(tenantId, 'stock:update', {
+            ventaId: venta.id,
+            items: detalles.map((d) => ({
+              varianteId: d.varianteId,
+              sku: d.sku,
+              stockActual: d.newStock,
+            })),
+            timestamp: new Date().toISOString(),
+          })
+        } catch (wsErr) {
+          fastify.log.warn(
+            { wsErr },
+            'WebSocket emit fallo pero la venta fue confirmada'
+          )
+        }
+
         return reply.status(201).send(successResponse(venta))
       } finally {
-        // 5. Liberar locks siempre
+        // 6. Liberar locks siempre
         for (const key of locks) {
           await releaseLock(key)
         }
