@@ -1,10 +1,11 @@
 import fp from 'fastify-plugin'
 import fastifyWebsocket from '@fastify/websocket'
+import type { WebSocket } from 'ws'
 import { Errors } from '../lib/errors.js'
 
-const tenantConnections = new Map<string, Set<any>>()
+const tenantConnections = new Map<string, Set<WebSocket>>()
 
-function cleanup(tenantId: string, socket: any) {
+function cleanup(tenantId: string, socket: WebSocket) {
   const set = tenantConnections.get(tenantId)
   set?.delete(socket)
   if (set && set.size === 0) {
@@ -30,10 +31,10 @@ export const websocketPlugin = fp(async (fastify) => {
     },
     (connection, request: any) => {
       const { tenantId } = request.params
-      const socket = connection.socket
+      const socket = connection.socket as WebSocket
 
       if (!tenantConnections.has(tenantId)) {
-        tenantConnections.set(tenantId, new Set())
+        tenantConnections.set(tenantId, new Set<WebSocket>())
       }
       tenantConnections.get(tenantId)!.add(socket)
 
@@ -45,9 +46,7 @@ export const websocketPlugin = fp(async (fastify) => {
       })
 
       socket.on('error', (err: Error) => {
-        fastify.log.error(
-          `WebSocket error — tenant: ${tenantId} — ${err.message}`
-        )
+        fastify.log.error({ tenantId, err }, 'WebSocket error')
         cleanup(tenantId, socket)
       })
 
@@ -66,7 +65,7 @@ export function emitToTenant(tenantId: string, event: string, data: unknown) {
   if (!connections || connections.size === 0) return
 
   const message = JSON.stringify({ event, data })
-  const deadSockets: any[] = []
+  const deadSockets: WebSocket[] = []
 
   for (const socket of connections) {
     if (socket.readyState === 1) {

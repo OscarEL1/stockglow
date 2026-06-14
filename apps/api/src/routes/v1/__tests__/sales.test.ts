@@ -61,6 +61,12 @@ describe('WebSocket — emitToTenant', () => {
     )
   })
 
+  // TODO: test de integracion real - verificar que saleRoutes llmam
+  // emitToTenant tras confirmar la venta usando fastify.inject + mocks de primas
+  it.todo(
+    'saleRoutes llama a emitToTenant con payload correcto tras confirmar venta'
+  )
+
   it.todo(
     'una falla de WebSocket no afecta el status 201 - pendiente test de integración con fastify.inject'
   )
