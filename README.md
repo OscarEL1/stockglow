@@ -31,6 +31,14 @@ cd stockglow
 pnpm install
 ```
 
+## Documentación de la API
+
+La documentación interactiva está disponible en desarrollo:
+http://localhost:3000/api/v1/docs
+
+El spec JSON está disponible en todos los entornos:
+http://localhost:3000/api/v1/docs/json
+
 ## Convención de commits
 
 Ver [CONTRIBUTING.md](./CONTRIBUTING.md) para el flujo completo de GitFlow

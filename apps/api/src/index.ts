@@ -4,6 +4,7 @@ import { env } from './lib/env.js'
 import { security } from './plugins/security.js'
 import { clerkAuth } from './plugins/clerk.js'
 import { errorHandler } from './plugins/error-handler.js'
+import { swaggerDocs } from './plugins/swagger.js'
 import { websocketPlugin } from './plugins/websocket.js'
 import { healthRoutes } from './routes/v1/health.js'
 import { productRoutes } from './routes/v1/products.js'
@@ -19,6 +20,7 @@ const fastify = Fastify({
 await fastify.register(security)
 await fastify.register(clerkAuth)
 await fastify.register(errorHandler)
+await fastify.register(swaggerDocs)
 await fastify.register(websocketPlugin)
 
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
@@ -30,6 +32,7 @@ try {
   await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
   console.log(`Server running on port ${env.PORT}`)
   if (env.NODE_ENV === 'development') {
+    console.log(`Docs disponibles en http://localhost:${env.PORT}/api/v1/docs`)
     console.log(
       `WebSocket endpoint: ws://localhost:${env.PORT}/api/v1/ws/{tenantId}`
     )
