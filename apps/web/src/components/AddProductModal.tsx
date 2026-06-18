@@ -17,7 +17,11 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
     if (!nombre.trim()) return
 
     mutate(
-      { nombre, marca: marca || undefined, categoria: categoria || undefined },
+      {
+        nombre: nombre.trim(),
+        marca: marca.trim() || undefined,
+        categoria: categoria.trim() || undefined,
+      },
       {
         onSuccess: () => onSuccess(),
       }
