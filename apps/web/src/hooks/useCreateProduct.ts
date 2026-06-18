@@ -21,7 +21,7 @@ export function useCreateProduct() {
       return res.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['variants'] })
-    },
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+    }
   })
 }
