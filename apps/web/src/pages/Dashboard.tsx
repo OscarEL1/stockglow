@@ -1,8 +1,18 @@
+import { useState } from 'react'
 import { UserButton, useUser } from '@clerk/clerk-react'
 import { VariantsTable } from '../components/VariantsTable'
+import { AddProductModal } from '../components/AddProductModal'
+import { AddVariantModal } from '../components/AddVariantModal'
 
 export function Dashboard() {
   const { user } = useUser()
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [showVariantModal, setShowVariantModal] = useState(false)
+
+  function handleProductCreated() {
+    setShowProductModal(false)
+    setShowVariantModal(true)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -22,14 +32,46 @@ export function Dashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-gray-500 mt-1">
-            Gestiona los productos y variantes de tu tienda
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
+            <p className="text-gray-500 mt-1">
+              Gestiona los productos y variantes de tu tienda
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowProductModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+            >
+              + Agregar producto
+            </button>
+            <button
+              onClick={() => setShowVariantModal(true)}
+              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50"
+            >
+              + Agregar variante
+            </button>
+          </div>
         </div>
+
         <VariantsTable />
       </main>
+
+      {showProductModal && (
+        <AddProductModal
+          onClose={() => setShowProductModal(false)}
+          onSuccess={handleProductCreated}
+        />
+      )}
+
+      {showVariantModal && (
+        <AddVariantModal
+          onClose={() => {
+            setShowVariantModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }
