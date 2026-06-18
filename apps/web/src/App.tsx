@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SignIn, SignUp, useAuth } from '@clerk/clerk-react'
+import { Dashboard } from './pages/Dashboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -23,7 +24,7 @@ export default function App() {
   return (
     <Routes>
       <Route
-        path="/login"
+        path="/login/*"
         element={
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <SignIn routing="path" path="/login" />
@@ -32,7 +33,7 @@ export default function App() {
       />
 
       <Route
-        path="/register"
+        path="/register/*"
         element={
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <SignUp routing="path" path="/register" />
@@ -44,13 +45,7 @@ export default function App() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <div className="min-h-screen bg-gray-50 p-8">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Dashboard — StockGlow
-              </h1>
-
-              <p className="text-gray-500 mt-2">Inventario cargando...</p>
-            </div>
+            <Dashboard />
           </ProtectedRoute>
         }
       />
