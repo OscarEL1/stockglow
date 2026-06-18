@@ -19,13 +19,13 @@ export function AddVariantModal({ onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!productoId || !sku || !nombreVariante || !precioVenta) return
+    if (!productoId || !sku.trim() || !nombreVariante.trim() || !precioVenta) return
 
     mutate(
       {
         productoId,
-        sku,
-        nombreVariante,
+        sku: sku.trim(),
+        nombreVariante: nombreVariante.trim(),
         precioVenta: Number(precioVenta),
         stockActual: Number(stockActual),
         stockMinimo: Number(stockMinimo),
