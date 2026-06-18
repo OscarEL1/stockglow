@@ -4,11 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
-  },
+  "dev": "vite",
+  "build": "tsc -b && vite build",
+  "lint": "eslint .",
+  "typecheck": "tsc --noEmit",
+  "test": "echo \"no tests yet\" && exit 0",
+  "preview": "vite preview"
+},
   "dependencies": {
     "@clerk/clerk-react": "5.29.0",
     "@tanstack/react-query": "5.80.7",
