@@ -10,6 +10,8 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
   const [nombre, setNombre] = useState('')
   const [marca, setMarca] = useState('')
   const [categoria, setCategoria] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+
   const { mutate, isPending, error } = useCreateProduct()
 
   function handleSubmit(e: React.FormEvent) {
@@ -30,76 +32,100 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-product-title"
     >
-      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-        <h2
-          id="add-product-title"
-          className="text-lg font-semibold text-gray-900 mb-4"
-        >
-          Agregar producto
-        </h2>
+      <div className="w-full max-w-[640px] rounded-[28px] bg-white px-10 py-9 shadow-2xl">
+        <div className="mb-8">
+          <h2
+            id="add-product-title"
+            className="text-[30px] font-extrabold leading-tight text-[#2D2A32]"
+          >
+            Agregar producto
+          </h2>
+          <p className="mt-2 text-sm text-[#7A7480]">
+            Registra el producto base. Las variantes se agregan después.
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre *
-            </label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="Labial Matte"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <div className="space-y-5">
+            <div>
+              <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                Nombre del producto
+              </label>
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ej. Labial Velvet"
+                className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Marca
-            </label>
-            <input
-              type="text"
-              value={marca}
-              onChange={(e) => setMarca(e.target.value)}
-              placeholder="LOreal"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                  Marca
+                </label>
+                <input
+                  type="text"
+                  value={marca}
+                  onChange={(e) => setMarca(e.target.value)}
+                  placeholder="Glow Beauty"
+                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Categoria
-            </label>
-            <input
-              type="text"
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value)}
-              placeholder="Labiales"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+              <div>
+                <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                  Categoría
+                </label>
+                <input
+                  type="text"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  placeholder="Labiales"
+                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                Descripción
+              </label>
+              <textarea
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Descripción corta del producto..."
+                className="min-h-[120px] w-full resize-none rounded-2xl border border-[#F1DDE5] bg-white px-5 py-4 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+              />
+            </div>
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">Error: {error.message}</p>
+            <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+              Error: {error.message}
+            </p>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="mt-8 flex justify-end gap-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2 text-sm hover:bg-gray-50"
+              className="h-12 min-w-[150px] rounded-2xl border border-[#F1DDE5] bg-white px-6 text-sm font-bold text-[#2D2A32] transition hover:bg-[#FFF8F9]"
             >
               Cancelar
             </button>
+
             <button
               type="submit"
               disabled={isPending || !nombre.trim()}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+              className="h-12 min-w-[170px] rounded-2xl bg-[#E85D8C] px-6 text-sm font-bold text-white transition hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isPending ? 'Guardando...' : 'Guardar producto'}
             </button>
