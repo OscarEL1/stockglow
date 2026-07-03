@@ -38,6 +38,19 @@ export const errorHandler = fp(async (fastify) => {
         )
     }
 
+    // Error de archivo muy grande
+    if (error.statusCode === 413) {
+      return reply
+        .status(413)
+        .send(
+          errorResponse(
+            'FILE_TOO_LARGE',
+            'La imagen no puede superar los 5MB',
+            413
+          )
+        )
+    }
+
     // Error de rate limit
     if (error.statusCode === 429) {
       return reply

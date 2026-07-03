@@ -9,6 +9,7 @@ interface CreateVariantData {
   precioVenta: number
   stockActual: number
   stockMinimo: number
+  imagenUrl?: string
 }
 
 export function useCreateVariant() {
