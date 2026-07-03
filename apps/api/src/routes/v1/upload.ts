@@ -16,7 +16,14 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       const data = await request.file()
 
       if (!data) {
-        throw Errors.NOT_FOUND('Archivo de imagen')
+        return reply.status(400).send({
+          success: false,
+          error: {
+            code: 'MISSING_FILE',
+            message: 'No se ha proporcionado ningún archivo de imagen',
+            statusCode: 400,
+          },
+        })
       }
 
       if (!ALLOWED_TYPES.includes(data.mimetype)) {

@@ -174,13 +174,13 @@ export function AddVariantModal({ onClose }: Props) {
                 type="file"
                 accept="image/jpeg, image/png, image/webp"
                 onChange={handleImageChange}
-                className="w-full text-sm text-[#2D2A32] file:mr-4 file:rounded-2x1 file:border-0 file:bg-[#F1DDE5] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#E85D8C] hover:file:bg-[#E85D8C] hover:file:text-white"
+                className="w-full text-sm text-[#2D2A32] file:mr-4 file:rounded-2xl file:border-0 file:bg-[#F1DDE5] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#E85D8C] hover:file:bg-[#E85D8C] hover:file:text-white"
               />
               {imagePreview && (
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="mt-3 h-24 rounded-x1 object-cover border border-[#F1DDE5]"
+                  className="mt-3 h-24 rounded-xl object-cover border border-[#F1DDE5]"
                 />
               )}
               <p className="mt-1 text-[11px] text-[#8F8795]">
@@ -211,7 +211,7 @@ export function AddVariantModal({ onClose }: Props) {
                 !nombreVariante.trim() ||
                 !precioVenta
               }
-              className="h-12 min-w-[170px] rounded-2x1 bg-[#E85D8C] px-6 text-sm font-bold text-white transition hover:bg-[#D94B7D] disabled:cursor-not-allowed disable:opacity-50"
+              className="h-12 min-w-[170px] rounded-2xl bg-[#E85D8C] px-6 text-sm font-bold text-white transition hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {uploadingImage
                 ? 'Subiendo imagen...'
