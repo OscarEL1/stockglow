@@ -22,6 +22,7 @@ export function AddVariantModal({ onClose }: Props) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const { uploadImage } = useUploadImage()
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,6 +38,7 @@ export function AddVariantModal({ onClose }: Props) {
         setImagenUrl(urlFinal)
       } catch {
         setUploadingImage(false)
+        setUploadError('Error al subir la imagen. Intenta nuevamente.')
         return
       }
       setUploadingImage(false)
@@ -60,6 +62,7 @@ export function AddVariantModal({ onClose }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
     if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setUploadError(null)
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
@@ -184,9 +187,11 @@ export function AddVariantModal({ onClose }: Props) {
                   className="mt-3 h-24 rounded-xl object-cover border border-[#F1DDE5]"
                 />
               )}
-              <p className="mt-1 text-[11px] text-[#8F8795]">
-                JPG, PNG o WebP. Tamaño máximo: 5MB.
-              </p>
+              {uploadError && (
+                <p className="mt-1 text-[11px] text-[#8F8795]">
+                  JPG, PNG o WebP. Tamaño máximo: 5MB.
+                </p>
+              )}
             </div>
           </div>
 
