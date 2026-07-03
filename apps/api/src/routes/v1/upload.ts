@@ -31,7 +31,7 @@ export async function uploadRoutes(fastify: FastifyInstance) {
           success: false,
           error: {
             code: 'INVALID_FILE_TYPE',
-            message: 'Solo se permiten imagenes JPG, PNG o WebP',
+            message: 'Solo se permiten imágenes JPG, PNG o WebP',
             statusCode: 422,
           },
         })

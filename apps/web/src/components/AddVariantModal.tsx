@@ -59,6 +59,7 @@ export function AddVariantModal({ onClose }: Props) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
