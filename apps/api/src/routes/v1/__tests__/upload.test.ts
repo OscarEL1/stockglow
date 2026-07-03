@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { errorResponse } from '../../../lib/response.js'
 
-describe('POST /api/v1/upload/image', () => {
+describe('errorResponse() — errores de upload', () => {
   it('responde 401 sin token jwt', () => {
     const result = errorResponse(
       'UNAUTHORIZED',

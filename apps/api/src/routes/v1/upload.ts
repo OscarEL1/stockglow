@@ -27,6 +27,9 @@ export async function uploadRoutes(fastify: FastifyInstance) {
       }
 
       if (!ALLOWED_TYPES.includes(data.mimetype)) {
+        for await (const _chunk of data.file) {
+          // descartar stream para evitar request colgada
+        }
         return reply
           .status(422)
           .send(

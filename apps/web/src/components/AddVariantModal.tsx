@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateVariant } from '../hooks/useCreateVariant'
 import { useUploadImage } from '../hooks/useUploadImage'
@@ -66,6 +66,12 @@ export function AddVariantModal({ onClose }: Props) {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [imagePreview])
 
   return (
     <div
@@ -187,10 +193,11 @@ export function AddVariantModal({ onClose }: Props) {
                   className="mt-3 h-24 rounded-xl object-cover border border-[#F1DDE5]"
                 />
               )}
+              <p className="mt-1 text-[11px] text-[#8F8795]">
+                JPG, PNG o WebP. Tamaño máximo: 5MB.
+              </p>
               {uploadError && (
-                <p className="mt-1 text-[11px] text-[#8F8795]">
-                  JPG, PNG o WebP. Tamaño máximo: 5MB.
-                </p>
+                <p className="mt-1 text-sm text-red-600">{uploadError}</p>
               )}
             </div>
           </div>
