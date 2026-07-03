@@ -12,6 +12,9 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   UPSTASH_REDIS_REST_URL: z.string().min(1),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1),
+  CLOUDINARY_API_KEY: z.string().min(1),
+  CLOUDINARY_API_SECRET: z.string().min(1),
 })
 
 export const env = envSchema.parse(process.env)
