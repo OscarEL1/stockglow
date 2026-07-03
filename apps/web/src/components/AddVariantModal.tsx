@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateVariant } from '../hooks/useCreateVariant'
+import { useUploadImage } from '../hooks/useUploadImage'
 
 interface Props {
   onClose: () => void
@@ -16,10 +17,30 @@ export function AddVariantModal({ onClose }: Props) {
   const [precioVenta, setPrecioVenta] = useState('')
   const [stockActual, setStockActual] = useState('0')
   const [stockMinimo, setStockMinimo] = useState('5')
+  const [imagenUrl, setImagenUrl] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const { uploadImage } = useUploadImage()
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!productoId || !sku.trim() || !nombreVariante.trim() || !precioVenta) return
+    if (!productoId || !sku.trim() || !nombreVariante.trim() || !precioVenta)
+      return
+
+    let urlFinal = imagenUrl
+
+    if (imageFile) {
+      setUploadingImage(true)
+      try {
+        urlFinal = await uploadImage(imageFile)
+        setImagenUrl(urlFinal)
+      } catch {
+        setUploadingImage(false)
+        return
+      }
+      setUploadingImage(false)
+    }
 
     mutate(
       {
@@ -29,9 +50,17 @@ export function AddVariantModal({ onClose }: Props) {
         precioVenta: Number(precioVenta),
         stockActual: Number(stockActual),
         stockMinimo: Number(stockMinimo),
+        imagenUrl: urlFinal || undefined,
       },
       { onSuccess: onClose }
     )
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
   }
 
   return (
@@ -137,6 +166,27 @@ export function AddVariantModal({ onClose }: Props) {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <div>
+              <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                Imagen del Producto
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg, image/png, image/webp"
+                onChange={handleImageChange}
+                className="w-full text-sm text-[#2D2A32] file:mr-4 file:rounded-2x1 file:border-0 file:bg-[#F1DDE5] file:px-4 file:py-2 file:text-sm file:font-bold file:text-[#E85D8C] hover:file:bg-[#E85D8C] hover:file:text-white"
+              />
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="mt-3 h-24 rounded-x1 object-cover border border-[#F1DDE5]"
+                />
+              )}
+              <p className="mt-1 text-[11px] text-[#8F8795]">
+                JPG, PNG o WebP. Tamaño máximo: 5MB.
+              </p>
+            </div>
           </div>
 
           {error && (
@@ -153,10 +203,21 @@ export function AddVariantModal({ onClose }: Props) {
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+              disabled={
+                isPending ||
+                uploadingImage ||
+                !productoId ||
+                !sku.trim() ||
+                !nombreVariante.trim() ||
+                !precioVenta
+              }
+              className="h-12 min-w-[170px] rounded-2x1 bg-[#E85D8C] px-6 text-sm font-bold text-white transition hover:bg-[#D94B7D] disabled:cursor-not-allowed disable:opacity-50"
             >
-              {isPending ? 'Guardando...' : 'Guardar variante'}
+              {uploadingImage
+                ? 'Subiendo imagen...'
+                : isPending
+                  ? 'Guardando...'
+                  : 'Guardar variante'}
             </button>
           </div>
         </form>
