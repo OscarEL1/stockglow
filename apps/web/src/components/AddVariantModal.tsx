@@ -14,9 +14,9 @@ export function AddVariantModal({ onClose }: Props) {
   const [sku, setSku] = useState('')
   const [nombreVariante, setNombreVariante] = useState('')
   const [precioVenta, setPrecioVenta] = useState('')
-  const [stockActual, setStockActual] = useState('15')
+  const [stockActual, setStockActual] = useState('0')
   const [stockMinimo, setStockMinimo] = useState('5')
-  const [fechaCaducidad, setFechaCaducidad] = useState('2026-12-18')
+  const [fechaCaducidad, setFechaCaducidad] = useState('')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
