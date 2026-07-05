@@ -17,6 +17,36 @@ interface DetalleItem {
 }
 
 export async function saleRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    '/',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { tenantId } = request
+
+      const ventas = await prisma.venta.findMany({
+        where: { tenantId },
+        include: {
+          detalles: {
+            include: {
+              variante: {
+                select: {
+                  nombreVariante: true,
+                  sku: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      })
+
+      return reply.send(successResponse(ventas))
+    }
+  )
+
   fastify.post(
     '/',
     {
