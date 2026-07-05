@@ -56,6 +56,24 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const input = createSaleSchema.parse(request.body)
       const { tenantId, userId } = request
 
+      const usuarioInterno = await prisma.usuario.findFirst({
+        where: { clerkUserId: userId, tenantId },
+        select: { id: true },
+      })
+
+      if (!usuarioInterno) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'Usuario no registrado en esta organizacion',
+            statusCode: 403,
+          },
+        })
+      }
+
+      const internalUserId = usuarioInterno.id
+
       // 1. Verificar stock previo para todos los items
       for (const item of input.items) {
         const variant = await prisma.varianteProducto.findFirst({
@@ -108,13 +126,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
         }
 
         // 4. Ejecutar transaccion atomica
-        const currentUserId = userId
-
         const venta = await prisma.$transaction(async (tx) => {
           const nuevaVenta = await tx.venta.create({
             data: {
               tenantId,
-              usuarioId: currentUserId,
+              usuarioId: internalUserId,
               total,
               estado: 'COMPLETADA',
               detalles: {
@@ -138,7 +154,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
               data: {
                 tenantId,
                 varianteId: d.varianteId,
-                usuarioId: currentUserId,
+                usuarioId: internalUserId,
                 tipo: 'ENTRADA',
                 cantidad: -d.cantidad,
                 motivo: `Venta #${nuevaVenta.id}`,
