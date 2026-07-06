@@ -3,7 +3,7 @@ import { useCreateProduct } from '../hooks/useCreateProduct'
 
 interface Props {
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (message: string) => void
 }
 
 export function AddProductModal({ onClose, onSuccess }: Props) {
@@ -25,7 +25,9 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
         categoria: categoria.trim() || undefined,
       },
       {
-        onSuccess: () => onSuccess(),
+        onSuccess: () => {
+          onSuccess('Producto guardado correctamente')
+        },
       }
     )
   }

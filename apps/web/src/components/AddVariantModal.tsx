@@ -5,9 +5,11 @@ import { useUploadImage } from '../hooks/useUploadImage'
 
 interface Props {
   onClose: () => void
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
 }
 
-export function AddVariantModal({ onClose }: Props) {
+export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
   const { data: products } = useProducts()
   const { mutate, isPending, error } = useCreateVariant()
 
@@ -56,7 +58,17 @@ export function AddVariantModal({ onClose }: Props) {
         stockMinimo: Number(stockMinimo),
         imagenUrl: urlFinal || undefined,
       },
-      { onSuccess: onClose }
+      {
+        onSuccess: () => {
+          onSuccess('Variante guardada correctamente')
+          onClose()
+        },
+        onError: (err) => {
+          onError(
+            err instanceof Error ? err.message : 'Error al guardar la variante'
+          )
+        },
+      }
     )
   }
 
