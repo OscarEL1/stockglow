@@ -30,5 +30,3 @@ export function useSales() {
     },
   })
 }
-
-export type { Sale, SaleDetalle }

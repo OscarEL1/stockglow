@@ -1,13 +1,19 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { UserButton, useUser } from '@clerk/clerk-react'
+import { UserButton, useUser, useOrganization } from '@clerk/clerk-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { VariantsTable } from '../components/VariantsTable'
 import { AddProductModal } from '../components/AddProductModal'
 import { AddVariantModal } from '../components/AddVariantModal'
+import { useStockWebSocket } from '../hooks/useStockWebSocket'
 
 export function Dashboard() {
   const { user } = useUser()
+  const { organization } = useOrganization()
+  const queryClient = useQueryClient()
   const [showProductModal, setShowProductModal] = useState(false)
+
+  useStockWebSocket(organization?.id ?? '', queryClient)
   const [showVariantModal, setShowVariantModal] = useState(false)
 
   function handleProductCreated() {

@@ -21,6 +21,22 @@ export const websocketPlugin = fp(async (fastify) => {
     {
       websocket: true,
       preHandler: [
+        async (request: any, reply: any) => {
+          const queryToken = (request.query as { token?: string }).token
+          if (queryToken) {
+            request.headers.authorization = `Bearer ${queryToken}`
+          }
+          if (!request.headers.authorization) {
+            return reply.status(401).send({
+              success: false,
+              error: {
+                code: 'UNAUTHORIZED',
+                message: 'Token requerido',
+                statusCode: 401,
+              },
+            })
+          }
+        },
         fastify.authenticate,
         async (request: any) => {
           if (request.params.tenantId !== request.tenantId) {
