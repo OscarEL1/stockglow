@@ -1,116 +1,212 @@
+import { useMemo, useState } from 'react'
 import { useVariants } from '../hooks/useVariants'
 
+type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
+
+function getStockStatus(stock: number, minimo: number): StockStatus {
+  if (stock === 0) return 'out_of_stock'
+  if (stock <= minimo) return 'low_stock'
+  return 'available'
+}
+
 function StockBadge({ stock, minimo }: { stock: number; minimo: number }) {
-  if (stock === 0) {
-    return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-        Agotado
-      </span>
-    )
+  const status = getStockStatus(stock, minimo)
+
+  const styles = {
+    available: 'bg-green-100 text-green-700',
+    low_stock: 'bg-yellow-100 text-yellow-800',
+    out_of_stock: 'bg-red-100 text-red-700',
   }
-  if (stock <= minimo) {
-    return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-        Stock bajo
-      </span>
-    )
+
+  const labels = {
+    available: 'Disponible',
+    low_stock: 'Stock bajo',
+    out_of_stock: 'Agotado',
   }
+
   return (
-    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-      Disponible
+    <span
+      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${styles[status]}`}
+    >
+      {labels[status]}
     </span>
   )
 }
 
+function LoadingState() {
+  return (
+    <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-gray-200 bg-white">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-9 w-9 animate-spin rounded-full border-4 border-pink-200 border-t-pink-500" />
+        <p className="text-sm text-gray-500">Cargando inventario...</p>
+      </div>
+    </div>
+  )
+}
+
+function ErrorState({ message }: { message?: string }) {
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+      <h3 className="text-sm font-semibold text-red-700">
+        No se pudo cargar el inventario
+      </h3>
+      <p className="mt-1 text-sm text-red-600">
+        {message || 'Ocurrió un error al consultar las variantes.'}
+      </p>
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-2xl border border-dashed border-pink-200 bg-white p-10 text-center">
+      <h3 className="text-base font-semibold text-gray-900">
+        Aún no hay variantes registradas
+      </h3>
+      <p className="mt-2 text-sm text-gray-500">
+        Agrega tu primer producto para comenzar a controlar tu inventario.
+      </p>
+    </div>
+  )
+}
+
 export function VariantsTable() {
-  const { data: variants, isLoading, isError, error } = useVariants()
+  const { data: variants = [], isLoading, isError, error } = useVariants()
+  const [search, setSearch] = useState('')
+
+  const filteredVariants = useMemo(() => {
+    const term = search.trim().toLowerCase()
+
+    if (!term) return variants
+
+    return variants.filter((variant) => {
+      const productName = variant.producto?.nombre?.toLowerCase() || ''
+      const brand = variant.producto?.marca?.toLowerCase() || ''
+      const variantName = variant.nombreVariante?.toLowerCase() || ''
+      const sku = variant.sku?.toLowerCase() || ''
+
+      return (
+        productName.includes(term) ||
+        brand.includes(term) ||
+        variantName.includes(term) ||
+        sku.includes(term)
+      )
+    })
+  }, [variants, search])
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (isError) {
-    return (
-      <div className="rounded-lg bg-red-50 p-4 text-red-800">
-        Error al cargar el inventario: {error?.message}
-      </div>
-    )
+    return <ErrorState message={error?.message} />
   }
 
   if (!variants || variants.length === 0) {
-    return (
-      <div className="rounded-lg bg-gray-50 p-8 text-center text-gray-500">
-        No hay variantes registradas. Agrega tu primer producto.
-      </div>
-    )
+    return <EmptyState />
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Producto
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Variante
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              SKU
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Precio
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Stock
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Estado
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {variants.map((variant) => (
-            <tr key={variant.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                  {variant.producto.nombre}
-                </div>
-                {variant.producto.marca && (
-                  <div className="text-sm text-gray-500">
-                    {variant.producto.marca}
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {variant.nombreVariante}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="font-mono text-sm text-gray-600">
-                  {variant.sku}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${Number(variant.precioVenta).toFixed(2)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                {variant.stockActual}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <StockBadge
-                  stock={variant.stockActual}
-                  minimo={variant.stockMinimo}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+        <input
+          type="text"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar producto, SKU o tono..."
+          className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:max-w-sm"
+        />
+
+        <div className="text-sm text-gray-500">
+          {filteredVariants.length} variante
+          {filteredVariants.length !== 1 ? 's' : ''} encontrada
+          {filteredVariants.length !== 1 ? 's' : ''}
+        </div>
+      </div>
+
+      {filteredVariants.length === 0 ? (
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+          No se encontraron variantes con esa búsqueda.
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse">
+              <thead className="bg-pink-50/70">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Producto
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Variante
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    SKU
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Precio
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Stock
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Estado
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {filteredVariants.map((variant) => {
+                  const stockActual = Number(variant.stockActual)
+                  const stockMinimo = Number(variant.stockMinimo)
+                  const precioVenta = Number(variant.precioVenta)
+
+                  return (
+                    <tr
+                      key={variant.id}
+                      className="transition hover:bg-pink-50/40"
+                    >
+                      <td className="px-6 py-5">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {variant.producto.nombre}
+                        </div>
+
+                        {variant.producto.marca && (
+                          <div className="mt-1 text-sm text-gray-500">
+                            {variant.producto.marca}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-5 text-sm text-gray-900">
+                        {variant.nombreVariante}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <span className="font-mono text-sm text-slate-700">
+                          {variant.sku}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-5 text-sm font-medium text-gray-900">
+                        ${precioVenta.toFixed(2)}
+                      </td>
+
+                      <td className="px-6 py-5 text-sm font-semibold text-gray-900">
+                        {stockActual}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <StockBadge stock={stockActual} minimo={stockMinimo} />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </section>
   )
 }
