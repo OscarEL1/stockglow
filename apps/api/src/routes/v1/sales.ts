@@ -17,6 +17,36 @@ interface DetalleItem {
 }
 
 export async function saleRoutes(fastify: FastifyInstance) {
+  fastify.get(
+    '/',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { tenantId } = request
+
+      const ventas = await prisma.venta.findMany({
+        where: { tenantId },
+        include: {
+          detalles: {
+            include: {
+              variante: {
+                select: {
+                  nombreVariante: true,
+                  sku: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      })
+
+      return reply.send(successResponse(ventas))
+    }
+  )
+
   fastify.post(
     '/',
     {
@@ -25,6 +55,24 @@ export async function saleRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const input = createSaleSchema.parse(request.body)
       const { tenantId, userId } = request
+
+      const usuarioInterno = await prisma.usuario.findFirst({
+        where: { clerkUserId: userId, tenantId },
+        select: { id: true },
+      })
+
+      if (!usuarioInterno) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'Usuario no registrado en esta organizacion',
+            statusCode: 403,
+          },
+        })
+      }
+
+      const internalUserId = usuarioInterno.id
 
       // 1. Verificar stock previo para todos los items
       for (const item of input.items) {
@@ -78,13 +126,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
         }
 
         // 4. Ejecutar transaccion atomica
-        const currentUserId = userId
-
         const venta = await prisma.$transaction(async (tx) => {
           const nuevaVenta = await tx.venta.create({
             data: {
               tenantId,
-              usuarioId: currentUserId,
+              usuarioId: internalUserId,
               total,
               estado: 'COMPLETADA',
               detalles: {
@@ -108,7 +154,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
               data: {
                 tenantId,
                 varianteId: d.varianteId,
-                usuarioId: currentUserId,
+                usuarioId: internalUserId,
                 tipo: 'ENTRADA',
                 cantidad: -d.cantidad,
                 motivo: `Venta #${nuevaVenta.id}`,
