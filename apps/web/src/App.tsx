@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SignIn, SignUp, useAuth } from '@clerk/clerk-react'
 import { Dashboard } from './pages/Dashboard'
+import { Sales } from './pages/Sales'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -46,6 +47,15 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/sales"
+        element={
+          <ProtectedRoute>
+            <Sales />
           </ProtectedRoute>
         }
       />
