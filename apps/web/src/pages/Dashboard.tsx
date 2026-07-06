@@ -5,18 +5,22 @@ import { useQueryClient } from '@tanstack/react-query'
 import { VariantsTable } from '../components/VariantsTable'
 import { AddProductModal } from '../components/AddProductModal'
 import { AddVariantModal } from '../components/AddVariantModal'
+import { Toast } from '../components/Toast'
 import { useStockWebSocket } from '../hooks/useStockWebSocket'
+import { useToast } from '../hooks/useToast'
 
 export function Dashboard() {
   const { user } = useUser()
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
+  const { toast, showToast, hideToast } = useToast()
   const [showProductModal, setShowProductModal] = useState(false)
-
-  useStockWebSocket(organization?.id ?? '', queryClient)
   const [showVariantModal, setShowVariantModal] = useState(false)
 
-  function handleProductCreated() {
+  useStockWebSocket(organization?.id ?? '', queryClient)
+
+  function handleProductCreated(message: string) {
+    showToast(message, 'success')
     setShowProductModal(false)
     setShowVariantModal(true)
   }
@@ -90,10 +94,14 @@ export function Dashboard() {
 
       {showVariantModal && (
         <AddVariantModal
-          onClose={() => {
-            setShowVariantModal(false)
-          }}
+          onClose={() => setShowVariantModal(false)}
+          onSuccess={(msg) => showToast(msg, 'success')}
+          onError={(msg) => showToast(msg, 'error')}
         />
+      )}
+
+      {toast.visible && (
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
     </div>
   )
