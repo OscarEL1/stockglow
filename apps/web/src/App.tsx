@@ -3,6 +3,7 @@ import { SignIn, SignUp, useAuth } from '@clerk/clerk-react'
 import { Dashboard } from './pages/Dashboard'
 import { Inventory } from './pages/Inventory'
 import { Sales } from './pages/Sales'
+import { Users } from './pages/Users'
 import { Layout } from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -113,7 +114,7 @@ export default function App() {
         path="/users"
         element={
           <ProtectedRoute>
-            <ComingSoon title="Usuarios" />
+            <Users />
           </ProtectedRoute>
         }
       />
