@@ -20,6 +20,8 @@ const ESTADO_STYLES: Record<Sale['estado'], string> = {
   CANCELADA: 'bg-red-100 text-red-700',
 }
 
+const PAGE_SIZE = 20
+
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('es-MX', {
     day: 'numeric',
@@ -31,6 +33,157 @@ function formatDate(dateStr: string): string {
   }).format(new Date(dateStr))
 }
 
+function SaleDetailModal({
+  sale,
+  onClose,
+}: {
+  sale: Sale
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sale-detail-title"
+    >
+      <div className="w-full max-w-2xl rounded-[28px] bg-white px-8 py-7 shadow-2xl">
+        {/* Header */}
+        <div className="mb-5 flex items-start justify-between">
+          <div>
+            <h2
+              id="sale-detail-title"
+              className="text-xl font-bold text-[#2D2A32]"
+            >
+              Detalle de venta
+            </h2>
+            <p className="mt-1 text-sm text-[#7A7480]">
+              {formatDate(sale.createdAt)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Meta: estado + vendedor + total */}
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <span
+            className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${ESTADO_STYLES[sale.estado]}`}
+          >
+            {sale.estado}
+          </span>
+          {sale.usuario && (
+            <span className="text-sm text-[#7A7480]">
+              Vendido por:{' '}
+              <span className="font-medium text-[#2D2A32]">
+                {sale.usuario.nombre}
+              </span>
+            </span>
+          )}
+          <span className="ml-auto text-lg font-bold text-[#2D2A32]">
+            Total:{' '}
+            <span className="text-[#E85D8C]">
+              ${parseFloat(sale.total).toFixed(2)}
+            </span>
+          </span>
+        </div>
+
+        {/* Tabla de productos */}
+        <div className="overflow-hidden rounded-xl border border-gray-200">
+          <table className="min-w-full border-collapse text-sm">
+            <thead className="bg-pink-50/70">
+              <tr>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Producto
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Variante
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  SKU
+                </th>
+                <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Cantidad
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Precio unit.
+                </th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Subtotal
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {sale.detalles.map((d) => {
+                const precio = parseFloat(d.precioUnitario)
+                return (
+                  <tr key={d.id} className="hover:bg-pink-50/40">
+                    <td className="px-5 py-3">
+                      {d.variante.imagenUrl ? (
+                        <img
+                          src={d.variante.imagenUrl}
+                          alt={d.variante.nombreVariante}
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                          <svg
+                            className="h-5 w-5 text-gray-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={1.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3 3h18"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 font-medium text-gray-900">
+                      {d.variante.nombreVariante}
+                    </td>
+                    <td className="px-5 py-3 font-mono text-gray-600">
+                      {d.variante.sku}
+                    </td>
+                    <td className="px-5 py-3 text-center text-gray-900">
+                      {d.cantidad}
+                    </td>
+                    <td className="px-5 py-3 text-right text-gray-700">
+                      ${precio.toFixed(2)}
+                    </td>
+                    <td className="px-5 py-3 text-right font-semibold text-gray-900">
+                      ${(d.cantidad * precio).toFixed(2)}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-[#F1DDE5] bg-white px-6 py-2 text-sm font-bold text-[#2D2A32] hover:bg-[#FFF8F9]"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Sales() {
   const { data: variants = [] } = useVariants()
   const { data: sales = [], isLoading: loadingSales } = useSales()
@@ -39,6 +192,11 @@ export function Sales() {
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
+  const [page, setPage] = useState(1)
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE))
+  const paginatedSales = sales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const selectedIds = new Set(items.map((i) => i.varianteId))
   const availableVariants = variants.filter(
@@ -105,6 +263,7 @@ export function Sales() {
         })),
       })
       setItems([])
+      setPage(1)
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Error al confirmar la venta'
@@ -248,51 +407,90 @@ export function Sales() {
               No hay ventas registradas
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">
-                      Fecha
-                    </th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">
-                      Total
-                    </th>
-                    <th className="px-4 py-3 text-center font-medium text-gray-600">
-                      Estado
-                    </th>
-                    <th className="px-4 py-3 text-center font-medium text-gray-600">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sales.map((sale) => (
-                    <tr key={sale.id}>
-                      <td className="px-4 py-3 text-gray-700">
-                        {formatDate(sale.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        ${parseFloat(sale.total).toFixed(2)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span
-                          className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${ESTADO_STYLES[sale.estado]}`}
-                        >
-                          {sale.estado}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs text-gray-400">
-                        —
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-pink-50/70">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Fecha
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Total
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Estado
+                      </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Acciones
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginatedSales.map((sale) => (
+                      <tr
+                        key={sale.id}
+                        className="transition hover:bg-pink-50/40"
+                      >
+                        <td className="px-4 py-3 text-gray-700">
+                          {formatDate(sale.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-900">
+                          ${parseFloat(sale.total).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${ESTADO_STYLES[sale.estado]}`}
+                          >
+                            {sale.estado}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => setSelectedSale(sale)}
+                            className="text-xs font-medium text-[#E85D8C] hover:text-[#D94B7D]"
+                          >
+                            Ver detalle
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    Página {page} de {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
+
+      {selectedSale && (
+        <SaleDetailModal
+          sale={selectedSale}
+          onClose={() => setSelectedSale(null)}
+        />
+      )}
     </Layout>
   )
 }
