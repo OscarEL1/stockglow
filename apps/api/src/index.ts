@@ -12,12 +12,26 @@ import { productRoutes } from './routes/v1/products.js'
 import { variantRoutes } from './routes/v1/variants.js'
 import { saleRoutes } from './routes/v1/sales.js'
 import { uploadRoutes } from './routes/v1/upload.js'
+import { webhookRoutes } from './routes/v1/webhooks.js'
 
 const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'production' ? 'warn' : 'info',
   },
 })
+
+fastify.addContentTypeParser(
+  'application/json',
+  { parseAs: 'buffer' },
+  (req, body, done) => {
+    try {
+      ;(req as any).rawBody = body.toString()
+      done(null, JSON.parse(body.toString()))
+    } catch (err: any) {
+      done(err)
+    }
+  }
+)
 
 await fastify.register(security)
 await fastify.register(clerkAuth)
@@ -35,6 +49,7 @@ await fastify.register(productRoutes, { prefix: '/api/v1/inventory/products' })
 await fastify.register(variantRoutes, { prefix: '/api/v1/inventory/variants' })
 await fastify.register(saleRoutes, { prefix: '/api/v1/sales' })
 await fastify.register(uploadRoutes, { prefix: '/api/v1/upload' })
+await fastify.register(webhookRoutes, { prefix: '/api/v1/webhooks' })
 
 try {
   await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
