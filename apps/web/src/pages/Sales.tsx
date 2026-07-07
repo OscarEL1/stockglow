@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { UserButton, useUser } from '@clerk/clerk-react'
 import { useVariants } from '../hooks/useVariants'
 import { useSales } from '../hooks/useSales'
 import type { Sale } from '../hooks/useSales'
 import { useCreateSale } from '../hooks/useCreateSale'
+import { Layout } from '../components/Layout'
 
 interface SaleItemLocal {
   varianteId: string
@@ -33,7 +32,6 @@ function formatDate(dateStr: string): string {
 }
 
 export function Sales() {
-  const { user } = useUser()
   const { data: variants = [] } = useVariants()
   const { data: sales = [], isLoading: loadingSales } = useSales()
   const createSale = useCreateSale()
@@ -115,48 +113,20 @@ export function Sales() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">S</span>
-              </div>
-              <span className="font-semibold text-gray-900">StockGlow</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                to="/dashboard"
-                className="text-sm text-gray-500 hover:text-gray-900"
-              >
-                Inventario
-              </Link>
-              <Link to="/sales" className="text-sm font-medium text-blue-600">
-                Ventas
-              </Link>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">{user?.firstName}</span>
-            <UserButton />
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <Layout>
+      <div className="space-y-8">
         {/* Nueva venta */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Nueva venta</h2>
+        <section className="rounded-xl border border-gray-200 bg-white p-6">
+          <h2 className="mb-4 text-xl font-bold text-[#2D2A32]">Nueva venta</h2>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Agregar variante
             </label>
             <select
               value={selectedVariantId}
               onChange={handleSelectVariant}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
             >
               <option value="">Selecciona una variante...</option>
               {availableVariants.map((v) => (
@@ -168,23 +138,23 @@ export function Sales() {
           </div>
 
           {items.length > 0 ? (
-            <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
+            <div className="mb-4 overflow-hidden rounded-lg border border-gray-200">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-gray-600 font-medium">
+                    <th className="px-4 py-2 text-left font-medium text-gray-600">
                       Variante
                     </th>
-                    <th className="px-4 py-2 text-left text-gray-600 font-medium">
+                    <th className="px-4 py-2 text-left font-medium text-gray-600">
                       SKU
                     </th>
-                    <th className="px-4 py-2 text-center text-gray-600 font-medium">
+                    <th className="px-4 py-2 text-center font-medium text-gray-600">
                       Cantidad
                     </th>
-                    <th className="px-4 py-2 text-right text-gray-600 font-medium">
+                    <th className="px-4 py-2 text-right font-medium text-gray-600">
                       Precio unit.
                     </th>
-                    <th className="px-4 py-2 text-right text-gray-600 font-medium">
+                    <th className="px-4 py-2 text-right font-medium text-gray-600">
                       Subtotal
                     </th>
                     <th className="px-4 py-2" />
@@ -202,7 +172,7 @@ export function Sales() {
                           <button
                             onClick={() => handleDecrement(item.varianteId)}
                             disabled={item.cantidad <= 1}
-                            className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
                           >
                             −
                           </button>
@@ -212,7 +182,7 @@ export function Sales() {
                           <button
                             onClick={() => handleIncrement(item.varianteId)}
                             disabled={item.cantidad >= item.stockActual}
-                            className="w-6 h-6 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                            className="flex h-6 w-6 items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40"
                           >
                             +
                           </button>
@@ -227,7 +197,7 @@ export function Sales() {
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleRemove(item.varianteId)}
-                          className="text-red-500 hover:text-red-700 text-xs"
+                          className="text-xs text-red-500 hover:text-red-700"
                         >
                           Eliminar
                         </button>
@@ -238,24 +208,24 @@ export function Sales() {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 mb-4">
+            <p className="mb-4 text-sm text-gray-400">
               No has agregado ninguna variante.
             </p>
           )}
 
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold text-gray-900">
-              Total: <span className="text-blue-600">${total.toFixed(2)}</span>
+              Total: <span className="text-[#E85D8C]">${total.toFixed(2)}</span>
             </p>
             <div className="flex flex-col items-end gap-2">
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button
                 onClick={handleConfirm}
                 disabled={items.length === 0 || createSale.isPending}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="flex items-center gap-2 rounded-lg bg-[#E85D8C] px-6 py-2 text-sm font-medium text-white hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {createSale.isPending && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 )}
                 Confirmar venta
               </button>
@@ -264,17 +234,17 @@ export function Sales() {
         </section>
 
         {/* Historial de ventas */}
-        <section className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <section className="rounded-xl border border-gray-200 bg-white p-6">
+          <h2 className="mb-4 text-xl font-bold text-[#2D2A32]">
             Historial de ventas
           </h2>
 
           {loadingSales ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
             </div>
           ) : sales.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-8">
+            <p className="py-8 text-center text-sm text-gray-400">
               No hay ventas registradas
             </p>
           ) : (
@@ -282,16 +252,16 @@ export function Sales() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-600 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">
                       Fecha
                     </th>
-                    <th className="px-4 py-3 text-right text-gray-600 font-medium">
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">
                       Total
                     </th>
-                    <th className="px-4 py-3 text-center text-gray-600 font-medium">
+                    <th className="px-4 py-3 text-center font-medium text-gray-600">
                       Estado
                     </th>
-                    <th className="px-4 py-3 text-center text-gray-600 font-medium">
+                    <th className="px-4 py-3 text-center font-medium text-gray-600">
                       Acciones
                     </th>
                   </tr>
@@ -307,12 +277,12 @@ export function Sales() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${ESTADO_STYLES[sale.estado]}`}
+                          className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${ESTADO_STYLES[sale.estado]}`}
                         >
                           {sale.estado}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-center text-xs text-gray-400">
                         —
                       </td>
                     </tr>
@@ -322,7 +292,7 @@ export function Sales() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </Layout>
   )
 }
