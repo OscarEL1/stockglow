@@ -7,7 +7,7 @@ export interface SaleDetalle {
   varianteId: string
   cantidad: number
   precioUnitario: string
-  variante: { nombreVariante: string; sku: string }
+  variante: { nombreVariante: string; sku: string; imagenUrl?: string }
 }
 
 export interface Sale {
@@ -16,6 +16,7 @@ export interface Sale {
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'
   createdAt: string
   usuarioId: string
+  usuario?: { nombre: string }
   detalles: SaleDetalle[]
 }
 

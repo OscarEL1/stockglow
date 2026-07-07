@@ -34,9 +34,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 select: {
                   nombreVariante: true,
                   sku: true,
+                  imagenUrl: true,
                 },
               },
             },
+          },
+          usuario: {
+            select: { nombre: true },
           },
         },
         orderBy: { createdAt: 'desc' },
