@@ -242,9 +242,28 @@ export function Sales() {
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
+  const [fechaInicio, setFechaInicio] = useState('')
+  const [fechaFin, setFechaFin] = useState('')
 
-  const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE))
-  const paginatedSales = sales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const filteredSales = sales.filter((sale) => {
+    if (!fechaInicio && !fechaFin) return true
+    const fecha = new Date(sale.createdAt)
+    if (fechaInicio) {
+      const inicio = new Date(`${fechaInicio}T00:00:00`)
+      if (fecha < inicio) return false
+    }
+    if (fechaFin) {
+      const fin = new Date(`${fechaFin}T23:59:59`)
+      if (fecha > fin) return false
+    }
+    return true
+  })
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / PAGE_SIZE))
+  const paginatedSales = filteredSales.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  )
 
   const selectedIds = new Set(items.map((i) => i.varianteId))
   const availableVariants = variants.filter((v) => {
@@ -462,6 +481,58 @@ export function Sales() {
             Historial de ventas
           </h2>
 
+          {/* Filtros de fecha */}
+          <div className="mb-4 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Desde:
+              </label>
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => {
+                  setFechaInicio(e.target.value)
+                  setPage(1)
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Hasta:
+              </label>
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => {
+                  setFechaFin(e.target.value)
+                  setPage(1)
+                }}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+              />
+            </div>
+            {(fechaInicio || fechaFin) && (
+              <>
+                <button
+                  onClick={() => {
+                    setFechaInicio('')
+                    setFechaFin('')
+                    setPage(1)
+                  }}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-[#F1DDE5] hover:bg-[#FFF8F9]"
+                >
+                  Limpiar filtros
+                </button>
+                <span className="text-sm text-gray-500">
+                  {filteredSales.length}{' '}
+                  {filteredSales.length === 1
+                    ? 'venta encontrada'
+                    : 'ventas encontradas'}
+                </span>
+              </>
+            )}
+          </div>
+
           {loadingSales ? (
             <div className="flex justify-center py-8">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
@@ -469,6 +540,10 @@ export function Sales() {
           ) : sales.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-400">
               No hay ventas registradas
+            </p>
+          ) : filteredSales.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-400">
+              Sin ventas en este período
             </p>
           ) : (
             <>
