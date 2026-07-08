@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useOrganization } from '@clerk/clerk-react'
+import { useRole } from '../hooks/useRole'
 import { useQueryClient } from '@tanstack/react-query'
 import { VariantsTable } from '../components/VariantsTable'
 import { AddProductModal } from '../components/AddProductModal'
@@ -12,6 +13,7 @@ import { useToast } from '../hooks/useToast'
 export function Inventory() {
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
+  const { isAdmin } = useRole()
   const { toast, showToast, hideToast } = useToast()
   const [showProductModal, setShowProductModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
@@ -33,20 +35,22 @@ export function Inventory() {
             Gestiona los productos y variantes de tu tienda
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowProductModal(true)}
-            className="rounded-lg bg-[#E85D8C] px-4 py-2 text-sm font-medium text-white hover:bg-[#D94B7D]"
-          >
-            + Agregar producto
-          </button>
-          <button
-            onClick={() => setShowVariantModal(true)}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            + Agregar variante
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowProductModal(true)}
+              className="rounded-lg bg-[#E85D8C] px-4 py-2 text-sm font-medium text-white hover:bg-[#D94B7D]"
+            >
+              + Agregar producto
+            </button>
+            <button
+              onClick={() => setShowVariantModal(true)}
+              className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              + Agregar variante
+            </button>
+          </div>
+        )}
       </div>
 
       <VariantsTable />
