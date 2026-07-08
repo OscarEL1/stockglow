@@ -6,8 +6,11 @@ import { env } from '../lib/env.js'
 
 export const security = fp(async (fastify) => {
   await fastify.register(helmet)
+
+  const allowedOrigin = env.FRONTEND_URL.replace(/\/$/, '') // Remove trailing slash if present
+
   await fastify.register(cors, {
-    origin: env.FRONTEND_URL,
+    origin: allowedOrigin,
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
