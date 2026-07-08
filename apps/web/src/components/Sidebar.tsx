@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useUser, useClerk } from '@clerk/clerk-react'
+import { useRole } from '../hooks/useRole'
 import {
   LayoutDashboard,
   Package,
@@ -13,20 +14,40 @@ import {
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Inventario', path: '/inventory', icon: Package },
-  { label: 'Productos', path: '/products', icon: Tag },
-  { label: 'Ventas', path: '/sales', icon: ShoppingCart },
-  { label: 'Movimientos', path: '/movements', icon: ArrowUpDown },
-  { label: 'Alertas', path: '/alerts', icon: Bell },
-  { label: 'Usuarios', path: '/users', icon: Users },
-  { label: 'Configuración', path: '/settings', icon: Settings },
+  {
+    label: 'Dashboard',
+    path: '/dashboard',
+    icon: LayoutDashboard,
+    adminOnly: false,
+  },
+  { label: 'Inventario', path: '/inventory', icon: Package, adminOnly: false },
+  { label: 'Productos', path: '/products', icon: Tag, adminOnly: false },
+  { label: 'Ventas', path: '/sales', icon: ShoppingCart, adminOnly: false },
+  {
+    label: 'Movimientos',
+    path: '/movements',
+    icon: ArrowUpDown,
+    adminOnly: false,
+  },
+  { label: 'Alertas', path: '/alerts', icon: Bell, adminOnly: false },
+  { label: 'Usuarios', path: '/users', icon: Users, adminOnly: true },
+  {
+    label: 'Configuración',
+    path: '/settings',
+    icon: Settings,
+    adminOnly: true,
+  },
 ]
 
 export function Sidebar() {
   const { pathname } = useLocation()
   const { user } = useUser()
   const { signOut } = useClerk()
+  const { isEmployee } = useRole()
+
+  const visibleItems = isEmployee
+    ? NAV_ITEMS.filter((item) => !item.adminOnly)
+    : NAV_ITEMS
 
   const initials =
     user?.firstName?.[0] ??
@@ -60,7 +81,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 px-3 py-2">
-        {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+        {visibleItems.map(({ label, path, icon: Icon }) => {
           const isActive = pathname === path
           return (
             <Link
