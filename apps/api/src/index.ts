@@ -18,6 +18,7 @@ const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'production' ? 'warn' : 'info',
   },
+  trustProxy: true,
 })
 
 fastify.addContentTypeParser(
