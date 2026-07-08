@@ -4,7 +4,9 @@ import { Dashboard } from './pages/Dashboard'
 import { Inventory } from './pages/Inventory'
 import { Sales } from './pages/Sales'
 import { Users } from './pages/Users'
+import { AccessDenied } from './pages/AccessDenied'
 import { Layout } from './components/Layout'
+import { ProtectedByRole } from './components/ProtectedByRole'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -114,7 +116,9 @@ export default function App() {
         path="/users"
         element={
           <ProtectedRoute>
-            <Users />
+            <ProtectedByRole role="admin">
+              <Users />
+            </ProtectedByRole>
           </ProtectedRoute>
         }
       />
@@ -123,7 +127,18 @@ export default function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <ComingSoon title="Configuración" />
+            <ProtectedByRole role="admin">
+              <ComingSoon title="Configuración" />
+            </ProtectedByRole>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/access-denied"
+        element={
+          <ProtectedRoute>
+            <AccessDenied />
           </ProtectedRoute>
         }
       />
