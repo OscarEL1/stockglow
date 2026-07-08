@@ -22,13 +22,29 @@ export const Errors = {
   VARIANT_NOT_FOUND: () =>
     new AppError('VARIANT_NOT_FOUND', 'Variante no encontrada', 404),
   SKU_ALREADY_EXISTS: () =>
-    new AppError('SKU_ALREADY_EXISTS', 'El SKU ya existe para este tenant', 409),
+    new AppError(
+      'SKU_ALREADY_EXISTS',
+      'El SKU ya existe para este tenant',
+      409
+    ),
 
   // Ventas
   INSUFFICIENT_STOCK: () =>
-    new AppError('INSUFFICIENT_STOCK', 'Stock insuficiente para completar la venta', 409),
+    new AppError(
+      'INSUFFICIENT_STOCK',
+      'Stock insuficiente para completar la venta',
+      409
+    ),
   LOCK_NOT_ACQUIRED: () =>
-    new AppError('LOCK_NOT_ACQUIRED', 'No se pudo adquirir el lock del SKU, intenta de nuevo', 409),
+    new AppError(
+      'LOCK_NOT_ACQUIRED',
+      'No se pudo adquirir el lock del SKU, intenta de nuevo',
+      409
+    ),
+  SALE_NOT_FOUND: () =>
+    new AppError('SALE_NOT_FOUND', 'Venta no encontrada', 404),
+  SALE_ALREADY_CANCELLED: () =>
+    new AppError('SALE_ALREADY_CANCELLED', 'La venta ya fue cancelada', 409),
 
   // General
   NOT_FOUND: (resource: string) =>

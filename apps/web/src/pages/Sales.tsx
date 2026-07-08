@@ -3,6 +3,7 @@ import { useVariants } from '../hooks/useVariants'
 import { useSales } from '../hooks/useSales'
 import type { Sale } from '../hooks/useSales'
 import { useCreateSale } from '../hooks/useCreateSale'
+import { useCancelSale } from '../hooks/useCancelSale'
 import { Layout } from '../components/Layout'
 
 interface SaleItemLocal {
@@ -40,6 +41,14 @@ function SaleDetailModal({
   sale: Sale
   onClose: () => void
 }) {
+  const [showConfirm, setShowConfirm] = useState(false)
+  const cancelSale = useCancelSale()
+
+  async function handleConfirmCancel() {
+    await cancelSale.mutateAsync(sale.id)
+    onClose()
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
@@ -170,14 +179,52 @@ function SaleDetailModal({
           </table>
         </div>
 
+        {/* Confirmación de cancelación */}
+        {showConfirm && (
+          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+            <p className="mb-3 text-sm font-medium text-red-700">
+              ¿Estás seguro? El stock será restaurado automáticamente.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmCancel}
+                disabled={cancelSale.isPending}
+                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {cancelSale.isPending && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                )}
+                Confirmar cancelación
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={cancelSale.isPending}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                No cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-[#F1DDE5] bg-white px-6 py-2 text-sm font-bold text-[#2D2A32] hover:bg-[#FFF8F9]"
-          >
-            Cerrar
-          </button>
+        <div className="mt-6 flex items-center justify-between">
+          {sale.estado === 'COMPLETADA' && !showConfirm && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="rounded-xl bg-red-500 px-6 py-2 text-sm font-bold text-white hover:bg-red-600"
+            >
+              Cancelar venta
+            </button>
+          )}
+          <div className="ml-auto">
+            <button
+              onClick={onClose}
+              className="rounded-xl border border-[#F1DDE5] bg-white px-6 py-2 text-sm font-bold text-[#2D2A32] hover:bg-[#FFF8F9]"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
