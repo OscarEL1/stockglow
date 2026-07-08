@@ -207,4 +207,84 @@ export async function saleRoutes(fastify: FastifyInstance) {
       }
     }
   )
+
+  fastify.patch(
+    '/:id/cancel',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+      const { tenantId, userId } = request
+
+      const usuarioInterno = await prisma.usuario.findFirst({
+        where: { clerkUserId: userId, tenantId },
+        select: { id: true },
+      })
+
+      if (!usuarioInterno) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'Usuario no registrado en esta organizacion',
+            statusCode: 403,
+          },
+        })
+      }
+
+      const venta = await prisma.venta.findFirst({
+        where: { id, tenantId },
+        include: { detalles: true },
+      })
+
+      if (!venta) throw Errors.SALE_NOT_FOUND()
+      if (venta.estado === 'CANCELADA') throw Errors.SALE_ALREADY_CANCELLED()
+
+      const ventaActualizada = await prisma.$transaction(async (tx) => {
+        const updated = await tx.venta.update({
+          where: { id },
+          data: { estado: 'CANCELADA' },
+          include: {
+            detalles: {
+              include: {
+                variante: {
+                  select: {
+                    nombreVariante: true,
+                    sku: true,
+                    imagenUrl: true,
+                  },
+                },
+              },
+            },
+            usuario: {
+              select: { nombre: true },
+            },
+          },
+        })
+
+        for (const detalle of venta.detalles) {
+          await tx.varianteProducto.update({
+            where: { id: detalle.varianteId },
+            data: { stockActual: { increment: detalle.cantidad } },
+          })
+
+          await tx.movimientoStock.create({
+            data: {
+              tenantId,
+              varianteId: detalle.varianteId,
+              usuarioId: usuarioInterno.id,
+              tipo: 'ENTRADA',
+              cantidad: detalle.cantidad,
+              motivo: `Cancelación de venta #${id}`,
+            },
+          })
+        }
+
+        return updated
+      })
+
+      return reply.send(successResponse(ventaActualizada))
+    }
+  )
 }

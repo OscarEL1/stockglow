@@ -26,7 +26,8 @@ fastify.addContentTypeParser(
   (req, body, done) => {
     try {
       ;(req as any).rawBody = body.toString()
-      done(null, JSON.parse(body.toString()))
+      const parsed = body.length > 0 ? JSON.parse(body.toString()) : {}
+      done(null, parsed)
     } catch (err: any) {
       done(err)
     }
