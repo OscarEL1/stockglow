@@ -191,6 +191,7 @@ export function Sales() {
 
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
+  const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
@@ -199,9 +200,17 @@ export function Sales() {
   const paginatedSales = sales.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const selectedIds = new Set(items.map((i) => i.varianteId))
-  const availableVariants = variants.filter(
-    (v) => !selectedIds.has(v.id) && v.stockActual > 0
-  )
+  const availableVariants = variants.filter((v) => {
+    const notSelected = !selectedIds.has(v.id) && v.stockActual > 0
+    if (!search.trim()) return notSelected
+    const term = search.toLowerCase()
+    return (
+      notSelected &&
+      (v.nombreVariante.toLowerCase().includes(term) ||
+        v.sku.toLowerCase().includes(term) ||
+        v.producto.nombre.toLowerCase().includes(term))
+    )
+  })
 
   const total = items.reduce(
     (sum, item) => sum + item.cantidad * item.precioUnitario,
@@ -226,6 +235,7 @@ export function Sales() {
       },
     ])
     setSelectedVariantId('')
+    setSearch('')
   }
 
   function handleIncrement(varianteId: string) {
@@ -278,10 +288,17 @@ export function Sales() {
         <section className="rounded-xl border border-gray-200 bg-white p-6">
           <h2 className="mb-4 text-xl font-bold text-[#2D2A32]">Nueva venta</h2>
 
-          <div className="mb-4">
+          <div className="mb-4 space-y-2">
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Agregar variante
             </label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, SKU o producto..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            />
             <select
               value={selectedVariantId}
               onChange={handleSelectVariant}
@@ -290,7 +307,7 @@ export function Sales() {
               <option value="">Selecciona una variante...</option>
               {availableVariants.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.nombreVariante} — {v.sku} (Stock: {v.stockActual})
+                  {v.nombreVariante} — {v.sku} · Stock: {v.stockActual}
                 </option>
               ))}
             </select>
