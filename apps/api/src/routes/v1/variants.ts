@@ -95,4 +95,39 @@ export async function variantRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(updated))
     }
   )
+
+  // GET /api/v1/inventory/variants/:id/movements
+  fastify.get(
+    '/:id/movements',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const variant = await prisma.varianteProducto.findFirst({
+        where: { id: request.params.id, tenantId: request.tenantId },
+      })
+
+      if (!variant) throw Errors.VARIANT_NOT_FOUND()
+
+      const movements = await prisma.movimientoStock.findMany({
+        where: {
+          varianteId: request.params.id,
+          tenantId: request.tenantId,
+        },
+        include: {
+          usuario: {
+            select: {
+              nombre: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      })
+
+      return reply.send(successResponse(movements))
+    }
+  )
 }
