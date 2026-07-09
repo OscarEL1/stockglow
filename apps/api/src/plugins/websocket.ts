@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import fastifyWebsocket from '@fastify/websocket'
 import type { WebSocket } from 'ws'
+import { Errors } from '../lib/errors.js'
 import { env } from '../lib/env.js'
 
 // Mapa global para rastrear conexiones activas agrupadas por tenantId
@@ -61,34 +62,10 @@ export const websocketPlugin = fp(async (fastify) => {
     {
       websocket: true,
       preHandler: [
-        async (request: any, reply: any) => {
-          const queryToken = (request.query as any).token
-          if (queryToken) {
-            request.headers['authorization'] = `Bearer ${queryToken}`
-            request.raw.headers['authorization'] = `Bearer ${queryToken}`
-          }
-          if (!request.headers['authorization']) {
-            return reply.status(401).send({
-              success: false,
-              error: {
-                code: 'UNAUTHORIZED',
-                message: 'Token requerido',
-                statusCode: 401,
-              },
-            })
-          }
-        },
         fastify.authenticate,
-        async (request: any, reply: any) => {
+        async (request: any) => {
           if ((request.params as any).tenantId !== request.tenantId) {
-            return reply.status(403).send({
-              success: false,
-              error: {
-                code: 'FORBIDDEN',
-                message: 'No tienes acceso a este tenant',
-                statusCode: 403,
-              },
-            })
+            throw Errors.FORBIDDEN()
           }
         },
       ],
