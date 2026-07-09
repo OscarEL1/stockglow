@@ -32,9 +32,12 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         }
       }
 
+      const totalVariants = variants.length
+
       return reply.send(
         successResponse({
           totalProducts,
+          totalVariants,
           totalValue,
           totalAlerts,
         })
