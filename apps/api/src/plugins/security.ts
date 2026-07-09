@@ -7,10 +7,20 @@ import { env } from '../lib/env.js'
 export const security = fp(async (fastify) => {
   await fastify.register(helmet)
 
-  const allowedOrigin = env.FRONTEND_URL.replace(/\/$/, '') // Remove trailing slash if present
-
   await fastify.register(cors, {
-    origin: allowedOrigin,
+    origin: (origin, cb) => {
+      const base = env.FRONTEND_URL.replace(/\/$/, '')
+      const allowed = [
+        base,
+        base.replace('https://', 'https://www.'),
+        base.replace('https://www.', 'https://'),
+      ]
+      if (!origin || allowed.includes(origin)) {
+        cb(null, true)
+      } else {
+        cb(new Error('Not allowed by CORS'), false)
+      }
+    },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
