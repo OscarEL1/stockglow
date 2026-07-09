@@ -1,13 +1,21 @@
+import { useState } from 'react'
 import { Layout } from '../components/Layout'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
+import { useSalesByDay, useTopProducts } from '../hooks/useReports'
+import { SalesChart } from '../components/SalesChart'
+import { TopProductsList } from '../components/TopProductsList'
 import { Package, DollarSign, AlertTriangle, RefreshCcw } from 'lucide-react'
 
 export function Dashboard() {
   const { data: summary, isLoading, isError, refetch } = useDashboardSummary()
+  const { data: salesData, isLoading: salesLoading } = useSalesByDay()
+  const [period, setPeriod] = useState<'week' | 'month'>('month')
+  const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
 
   return (
     <Layout>
       <div className="space-y-8">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-[#2D2A32]">
@@ -26,6 +34,7 @@ export function Dashboard() {
           </button>
         </div>
 
+        {/* Summary cards loading skeleton */}
         {isLoading && (
           <div className="grid gap-6 md:grid-cols-4">
             {[...Array(4)].map((_, i) => (
@@ -37,6 +46,7 @@ export function Dashboard() {
           </div>
         )}
 
+        {/* Error state */}
         {isError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
             <h3 className="text-sm font-semibold text-red-800">
@@ -54,6 +64,7 @@ export function Dashboard() {
           </div>
         )}
 
+        {/* Summary cards */}
         {!isLoading && !isError && summary && (
           <div className="grid gap-6 md:grid-cols-4">
             {/* Card 1: Unique Products */}
@@ -141,6 +152,21 @@ export function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Reports: Sales chart + Top products */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SalesChart data={salesData ?? []} isLoading={salesLoading} />
+          </div>
+          <div className="lg:col-span-1">
+            <TopProductsList
+              products={topProducts ?? []}
+              period={period}
+              onPeriodChange={setPeriod}
+              isLoading={topLoading}
+            />
+          </div>
+        </div>
       </div>
     </Layout>
   )
