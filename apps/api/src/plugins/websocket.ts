@@ -1,7 +1,6 @@
 import fp from 'fastify-plugin'
 import fastifyWebsocket from '@fastify/websocket'
 import type { WebSocket } from 'ws'
-import { Errors } from '../lib/errors.js'
 import { env } from '../lib/env.js'
 
 // Mapa global para rastrear conexiones activas agrupadas por tenantId
@@ -62,37 +61,33 @@ export const websocketPlugin = fp(async (fastify) => {
     {
       websocket: true,
       preHandler: [
-        // Extracción y mapeo del token de los Query Params a la cabecera de Authorization
-        async (request: any) => {
-          fastify.log.warn(
-            {
-              query: request.query,
-              hasTokenInQuery: !!(request.query as { token?: string }).token,
-              authHeader: !!request.headers.authorization,
-            },
-            'WS credentials check'
-          )
-
-          const queryToken = (request.query as { token?: string }).token
+        async (request: any, reply: any) => {
+          const queryToken = (request.query as any).token
           if (queryToken) {
-            request.headers.authorization = `Bearer ${queryToken}`
+            request.headers['authorization'] = `Bearer ${queryToken}`
           }
-
-          if (!request.headers.authorization) {
-            const error = new Error(
-              'Token requerido para conectar al canal'
-            ) as any
-            error.statusCode = 401
-            error.code = 'UNAUTHORIZED'
-            throw error // Lanzar error estructural en lugar de reply.send() directo
+          if (!request.headers['authorization']) {
+            return reply.status(401).send({
+              success: false,
+              error: {
+                code: 'UNAUTHORIZED',
+                message: 'Token requerido',
+                statusCode: 401,
+              },
+            })
           }
         },
-        // Autenticación por medio de Clerk
         fastify.authenticate,
-        // Validación de multi-tenant (Multi-inquilino)
-        async (request: any) => {
-          if (request.params.tenantId !== request.tenantId) {
-            throw Errors.FORBIDDEN()
+        async (request: any, reply: any) => {
+          if ((request.params as any).tenantId !== request.tenantId) {
+            return reply.status(403).send({
+              success: false,
+              error: {
+                code: 'FORBIDDEN',
+                message: 'No tienes acceso a este tenant',
+                statusCode: 403,
+              },
+            })
           }
         },
       ],
