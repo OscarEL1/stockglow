@@ -21,31 +21,6 @@ export const clerkAuth = fp(async (fastify) => {
       })
     }
 
-    // [DEV ONLY FIX] Auto-crear Tenant y Usuario para desarrollo local
-    // ya que los webhooks no se ejecutan en localhost sin ngrok
-    const { prisma } = await import('../lib/prisma.js')
-    await prisma.tenant.upsert({
-      where: { id: orgId },
-      update: {},
-      create: {
-        id: orgId,
-        nombreTienda: 'Mi Tienda Local',
-        planSuscripcion: 'basic',
-      },
-    })
-
-    await prisma.usuario.upsert({
-      where: { clerkUserId: userId },
-      update: {},
-      create: {
-        tenantId: orgId,
-        clerkUserId: userId,
-        nombre: 'Usuario de Pruebas',
-        email: 'dev@test.com',
-        rol: 'OWNER',
-      },
-    })
-
     request.tenantId = orgId
     request.userId = userId
   })
