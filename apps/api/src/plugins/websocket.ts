@@ -65,6 +65,7 @@ export const websocketPlugin = fp(async (fastify) => {
           const queryToken = (request.query as any).token
           if (queryToken) {
             request.headers['authorization'] = `Bearer ${queryToken}`
+            request.raw.headers['authorization'] = `Bearer ${queryToken}`
           }
           if (!request.headers['authorization']) {
             return reply.status(401).send({
