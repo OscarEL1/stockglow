@@ -24,9 +24,12 @@ export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
           const token = await getToken()
           if (!token || cancelled) return
 
-          const apiBase = import.meta.env.VITE_API_URL as string
-          const wsUrl = `${apiBase.replace(/^http/, 'ws')}/api/v1/ws/${tenantId}?token=${token}`
-          const ws = new WebSocket(wsUrl)
+          const wsBase = (import.meta.env.VITE_API_URL as string)
+            .replace('https://', 'wss://')
+            .replace('http://', 'ws://')
+          const url = new URL(`${wsBase}/api/v1/ws/${tenantId}`)
+          url.searchParams.set('token', token)
+          const ws = new WebSocket(url.toString())
           wsRef.current = ws
 
           ws.onmessage = (event) => {

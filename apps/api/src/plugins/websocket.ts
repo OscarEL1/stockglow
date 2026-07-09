@@ -64,6 +64,15 @@ export const websocketPlugin = fp(async (fastify) => {
       preHandler: [
         // Extracción y mapeo del token de los Query Params a la cabecera de Authorization
         async (request: any) => {
+          fastify.log.warn(
+            {
+              query: request.query,
+              hasTokenInQuery: !!(request.query as { token?: string }).token,
+              authHeader: !!request.headers.authorization,
+            },
+            'WS credentials check'
+          )
+
           const queryToken = (request.query as { token?: string }).token
           if (queryToken) {
             request.headers.authorization = `Bearer ${queryToken}`
