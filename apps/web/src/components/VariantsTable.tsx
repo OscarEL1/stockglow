@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useVariants } from '../hooks/useVariants'
+import { History } from 'lucide-react'
+import { VariantHistoryModal } from './VariantHistoryModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 
@@ -73,6 +75,10 @@ function EmptyState() {
 export function VariantsTable() {
   const { data: variants = [], isLoading, isError, error } = useVariants()
   const [search, setSearch] = useState('')
+  const [historyVariant, setHistoryVariant] = useState<{
+    id: string
+    name: string
+  } | null>(null)
 
   const filteredVariants = useMemo(() => {
     const term = search.trim().toLowerCase()
@@ -152,6 +158,9 @@ export function VariantsTable() {
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Estado
                   </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
 
@@ -199,6 +208,21 @@ export function VariantsTable() {
                       <td className="px-6 py-5">
                         <StockBadge stock={stockActual} minimo={stockMinimo} />
                       </td>
+                      <td className="px-6 py-5 text-right">
+                        <button
+                          onClick={() =>
+                            setHistoryVariant({
+                              id: variant.id,
+                              name: `${variant.producto.nombre} - ${variant.nombreVariante}`,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-colors"
+                          title="Ver historial de movimientos"
+                        >
+                          <History className="h-4 w-4" />
+                          <span className="hidden sm:inline">Historial</span>
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -207,6 +231,13 @@ export function VariantsTable() {
           </div>
         </div>
       )}
+
+      <VariantHistoryModal
+        isOpen={!!historyVariant}
+        onClose={() => setHistoryVariant(null)}
+        variantId={historyVariant?.id || null}
+        variantName={historyVariant?.name}
+      />
     </section>
   )
 }
