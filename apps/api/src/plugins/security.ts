@@ -5,6 +5,14 @@ import rateLimit from '@fastify/rate-limit'
 import { env } from '../lib/env.js'
 
 export const security = fp(async (fastify) => {
+  fastify.addHook('onRequest', async (request: any) => {
+    if (request.url.includes('/api/v1/ws/') && (request.query as any)?.token) {
+      const token = (request.query as any).token
+      request.headers.authorization = `Bearer ${token}`
+      request.raw.headers.authorization = `Bearer ${token}`
+    }
+  })
+
   await fastify.register(helmet)
 
   await fastify.register(cors, {
