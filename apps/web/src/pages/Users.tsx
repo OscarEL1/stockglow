@@ -1,4 +1,9 @@
-import { useOrganization } from '@clerk/clerk-react'
+import { useState } from 'react'
+import { useOrganization, useUser } from '@clerk/clerk-react'
+import { useRole } from '../hooks/useRole'
+import { useUpdateMemberRole } from '../hooks/useUpdateMemberRole'
+import { useToast } from '../hooks/useToast'
+import { Toast } from '../components/Toast'
 import { Layout } from '../components/Layout'
 
 function formatDate(date: Date): string {
@@ -26,9 +31,33 @@ function RoleBadge({ role }: { role: string }) {
 
 export function Users() {
   const { isLoaded, memberships } = useOrganization({ memberships: true })
+  const { user } = useUser()
+  const { isAdmin } = useRole()
+  const { updateRole } = useUpdateMemberRole()
+  const { toast, showToast, hideToast } = useToast()
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null)
 
   const isLoading = !isLoaded || (memberships?.isLoading ?? true)
   const members = memberships?.data ?? []
+
+  async function handleRoleChange(
+    userId: string,
+    role: 'org:admin' | 'org:member'
+  ) {
+    setPendingUserId(userId)
+    try {
+      await updateRole(userId, role)
+      showToast('Rol actualizado correctamente', 'success')
+      await memberships?.revalidate?.()
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Error al actualizar el rol',
+        'error'
+      )
+    } finally {
+      setPendingUserId(null)
+    }
+  }
 
   return (
     <Layout>
@@ -87,6 +116,9 @@ export function Users() {
                     email[0] ??
                     '?'
                   ).toUpperCase()
+                  const memberId = userData?.userId ?? ''
+                  const isCurrentUser = user?.id === memberId
+                  const isThisPending = pendingUserId === memberId
 
                   return (
                     <tr
@@ -115,7 +147,29 @@ export function Users() {
                         {email}
                       </td>
                       <td className="px-6 py-5">
-                        <RoleBadge role={member.role} />
+                        {isAdmin ? (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={member.role}
+                              onChange={(e) =>
+                                handleRoleChange(
+                                  memberId,
+                                  e.target.value as 'org:admin' | 'org:member'
+                                )
+                              }
+                              disabled={isCurrentUser || isThisPending}
+                              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="org:admin">Owner</option>
+                              <option value="org:member">Employee</option>
+                            </select>
+                            {isThisPending && (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E85D8C] border-t-transparent" />
+                            )}
+                          </div>
+                        ) : (
+                          <RoleBadge role={member.role} />
+                        )}
                       </td>
                       <td className="px-6 py-5">
                         <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
@@ -132,6 +186,10 @@ export function Users() {
             </table>
           </div>
         </div>
+      )}
+
+      {toast.visible && (
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
     </Layout>
   )
