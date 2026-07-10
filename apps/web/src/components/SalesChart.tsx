@@ -6,7 +6,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  type TooltipProps,
 } from 'recharts'
 
 export interface SalesByDayItem {
@@ -19,11 +18,15 @@ interface SalesChartProps {
   isLoading?: boolean
 }
 
-function CustomTooltip({
+const CustomTooltip = ({
   active,
   payload,
   label,
-}: TooltipProps<number, string>) {
+}: {
+  active?: boolean
+  payload?: Array<{ value: number }>
+  label?: string
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-xl border border-pink-100 bg-white px-4 py-3 shadow-lg">
