@@ -7,6 +7,7 @@ import { Users } from './pages/Users'
 import { AccessDenied } from './pages/AccessDenied'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
+import { Products } from './pages/Products'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -89,7 +90,7 @@ export default function App() {
         path="/products"
         element={
           <ProtectedRoute>
-            <ComingSoon title="Productos" />
+            <Products />
           </ProtectedRoute>
         }
       />
