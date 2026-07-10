@@ -125,19 +125,15 @@ export function VariantHistoryModal({
                     <div className="text-right">
                       <p
                         className={`text-sm font-bold ${
-                          mov.tipo === 'ENTRADA'
+                          mov.cantidad > 0
                             ? 'text-green-600'
-                            : mov.tipo === 'MERMA' || mov.tipo === 'CADUCADO'
+                            : mov.cantidad < 0
                               ? 'text-red-600'
-                              : 'text-blue-600'
+                              : 'text-gray-600'
                         }`}
                       >
-                        {mov.tipo === 'ENTRADA'
-                          ? '+'
-                          : mov.tipo === 'AJUSTE' && mov.cantidad > 0
-                            ? '+'
-                            : ''}
-                        {mov.cantidad} unid.
+                        {mov.cantidad > 0 ? '+' : mov.cantidad < 0 ? '-' : ''}
+                        {Math.abs(mov.cantidad)} unid.
                       </p>
                     </div>
                     <div className="text-right text-xs text-gray-400">

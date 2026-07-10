@@ -7,11 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-
-export interface SalesByDayItem {
-  label: string
-  total: number
-}
+import { type SalesByDayItem } from '../hooks/useReports'
 
 interface SalesChartProps {
   data: SalesByDayItem[]
