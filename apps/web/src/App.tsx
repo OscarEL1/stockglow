@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Inventory } from './pages/Inventory'
 import { Sales } from './pages/Sales'
 import { Users } from './pages/Users'
+import Alerts from './pages/Alerts'
 import { AccessDenied } from './pages/AccessDenied'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
@@ -108,7 +109,7 @@ export default function App() {
         path="/alerts"
         element={
           <ProtectedRoute>
-            <ComingSoon title="Alertas" />
+            <Alerts />
           </ProtectedRoute>
         }
       />
