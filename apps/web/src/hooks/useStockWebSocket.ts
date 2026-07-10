@@ -40,6 +40,7 @@ export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
               }
               if (msg.event === 'stock:update') {
                 queryClient.invalidateQueries({ queryKey: ['variants'] })
+                queryClient.invalidateQueries({ queryKey: ['alerts'] })
               }
             } catch {
               // ignore malformed messages

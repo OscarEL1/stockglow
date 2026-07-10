@@ -1,6 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
+import { useAlerts } from '../hooks/useAlerts'
+import { AlertsPanel } from './AlertsPanel'
 import {
   LayoutDashboard,
   Package,
@@ -44,6 +47,8 @@ export function Sidebar() {
   const { user } = useUser()
   const { signOut } = useClerk()
   const { isEmployee } = useRole()
+  const { data: alerts = [] } = useAlerts()
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false)
 
   const visibleItems = isEmployee
     ? NAV_ITEMS.filter((item) => !item.adminOnly)
@@ -83,18 +88,40 @@ export function Sidebar() {
       <nav className="flex-1 space-y-0.5 px-3 py-2">
         {visibleItems.map(({ label, path, icon: Icon }) => {
           const isActive = pathname === path
-          return (
-            <Link
-              key={path}
-              to={path}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'border-l-[3px] border-[#E85D8C] bg-[#FDE8F0] pl-[9px] text-[#E85D8C]'
-                  : 'text-[#7A7480] hover:bg-[#FFF8F9] hover:text-[#2D2A32]'
-              }`}
-            >
+          const isAlertItem = path === '/alerts'
+          const baseClasses = `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors w-full text-left ${
+            isActive
+              ? 'border-l-[3px] border-[#E85D8C] bg-[#FDE8F0] pl-[9px] text-[#E85D8C]'
+              : 'text-[#7A7480] hover:bg-[#FFF8F9] hover:text-[#2D2A32]'
+          }`
+
+          const content = (
+            <>
               <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
               {label}
+              {isAlertItem && alerts.length > 0 && (
+                <span className="absolute right-3 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm">
+                  {alerts.length > 99 ? '99+' : alerts.length}
+                </span>
+              )}
+            </>
+          )
+
+          if (isAlertItem) {
+            return (
+              <button
+                key={path}
+                onClick={() => setIsAlertsOpen(true)}
+                className={baseClasses}
+              >
+                {content}
+              </button>
+            )
+          }
+
+          return (
+            <Link key={path} to={path} className={baseClasses}>
+              {content}
             </Link>
           )
         })}
@@ -122,6 +149,11 @@ export function Sidebar() {
           </button>
         </div>
       </div>
+
+      <AlertsPanel
+        isOpen={isAlertsOpen}
+        onClose={() => setIsAlertsOpen(false)}
+      />
     </aside>
   )
 }
