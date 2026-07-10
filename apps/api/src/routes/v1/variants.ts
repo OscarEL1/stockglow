@@ -10,13 +10,16 @@ import {
 
 export async function variantRoutes(fastify: FastifyInstance) {
   // POST /api/v1/inventory/variants
+  // POST /api/v1/inventory/variants
   fastify.post(
     '/',
     {
       preHandler: [fastify.authenticate],
     },
     async (request: any, reply) => {
-      const input = createVariantSchema.parse(request.body)
+      // Extraemos lo que viene crudo del cuerpo antes o después del parseo por seguridad
+      const bodyCrudo = request.body || {}
+      const input = createVariantSchema.parse(bodyCrudo)
 
       const existing = await prisma.varianteProducto.findFirst({
         where: { tenantId: request.tenantId, sku: input.sku },
@@ -24,14 +27,24 @@ export async function variantRoutes(fastify: FastifyInstance) {
 
       if (existing) throw Errors.SKU_ALREADY_EXISTS()
 
+      // Buscamos la fecha intentando leer ambos formatos (camelCase y snake_case)
+      const fechaFinal =
+        input.fechaCaducidad ||
+        bodyCrudo.fecha_caducidad ||
+        bodyCrudo.fechaCaducidad
+
       const variant = await prisma.varianteProducto.create({
         data: {
           tenantId: request.tenantId,
-          ...input,
+          sku: input.sku,
+          nombreVariante: input.nombreVariante,
+          imagenUrl: input.imagenUrl,
+          stockActual: input.stockActual,
+          stockMinimo: input.stockMinimo,
           precioVenta: input.precioVenta,
-          fechaCaducidad: input.fechaCaducidad
-            ? new Date(input.fechaCaducidad)
-            : null,
+          productoId: input.productoId,
+          // Forzamos el parseo correcto de la fecha a un objeto Date de JS
+          fechaCaducidad: fechaFinal ? new Date(fechaFinal) : null,
         },
       })
 
