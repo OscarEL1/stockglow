@@ -8,8 +8,11 @@ import {
   ResponsiveContainer,
   type TooltipProps,
 } from 'recharts'
-import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent'
-import { type SalesByDayItem } from '../hooks/useReports'
+
+export interface SalesByDayItem {
+  label: string
+  total: number
+}
 
 interface SalesChartProps {
   data: SalesByDayItem[]
@@ -20,7 +23,7 @@ function CustomTooltip({
   active,
   payload,
   label,
-}: TooltipProps<ValueType, NameType>) {
+}: TooltipProps<number, string>) {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-xl border border-pink-100 bg-white px-4 py-3 shadow-lg">
@@ -78,7 +81,7 @@ export function SalesChart({ data, isLoading }: SalesChartProps) {
               tick={{ fontSize: 11, fill: '#7A7480' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) =>
+              tickFormatter={(v: number) =>
                 v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
               }
               width={48}
