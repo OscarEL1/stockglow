@@ -10,49 +10,43 @@ export async function alertRoutes(fastify: FastifyInstance) {
       preHandler: [fastify.authenticate],
     },
     async (request: any, reply) => {
-      const todasLasVariantes = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
-        include: { producto: true },
-      })
+      const { tenantId } = request
 
-      const variantesCriticas = todasLasVariantes.filter((v) => {
-        const actual = v.stockActual ?? 0
-        const minimo = v.stockMinimo ?? 0
-        return actual <= minimo || actual === 0
-      })
-
-      const alertasFormateadas = variantesCriticas.map((v) => ({
-        id: `auto-${v.id}`,
-        tipo: 'BAJO_STOCK',
-        createdAt: v.updatedAt.toISOString(),
-        variante: {
-          id: v.id,
-          sku: v.sku,
-          nombreVariante: v.nombreVariante || 'Estándar',
-          stockActual: v.stockActual,
-          stockMinimo: v.stockMinimo,
-          producto: {
-            nombre: v.producto.nombre,
-            marca: v.producto.marca || null,
+      const alertas = await prisma.alerta.findMany({
+        where: { tenantId, leida: false },
+        include: {
+          variante: {
+            select: {
+              nombreVariante: true,
+              sku: true,
+              producto: {
+                select: { nombre: true },
+              },
+            },
           },
         },
-      }))
+        orderBy: { createdAt: 'desc' },
+      })
 
-      alertasFormateadas.sort(
-        (a, b) => a.variante.stockActual - b.variante.stockActual
-      )
-      return reply.send(successResponse(alertasFormateadas))
+      return reply.send(successResponse(alertas))
     }
   )
 
-  // PATCH /api/v1/alerts/:id/read
+  // PATCH /api/v1/alerts/mark-read
   fastify.patch(
-    '/:id/read',
+    '/mark-read',
     {
       preHandler: [fastify.authenticate],
     },
     async (request: any, reply) => {
-      return reply.send(successResponse({ id: request.params.id, leida: true }))
+      const { tenantId } = request
+
+      const result = await prisma.alerta.updateMany({
+        where: { tenantId, leida: false },
+        data: { leida: true },
+      })
+
+      return reply.send(successResponse({ count: result.count }))
     }
   )
 }
