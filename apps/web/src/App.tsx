@@ -5,6 +5,7 @@ import { Inventory } from './pages/Inventory'
 import { Sales } from './pages/Sales'
 import { Users } from './pages/Users'
 import { AccessDenied } from './pages/AccessDenied'
+import Onboarding from './pages/Onboarding'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 
@@ -55,6 +56,15 @@ export default function App() {
           <div className="flex min-h-screen items-center justify-center bg-[#FFF8F9]">
             <SignUp routing="path" path="/register" />
           </div>
+        }
+      />
+
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
         }
       />
 
@@ -143,7 +153,8 @@ export default function App() {
         }
       />
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* 👇 Cambio aquí: ahora la raíz manda al wizard */}
+      <Route path="/" element={<Navigate to="/onboarding" replace />} />
     </Routes>
   )
 }
