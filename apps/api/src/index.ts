@@ -14,6 +14,7 @@ import { saleRoutes } from './routes/v1/sales.js'
 import { uploadRoutes } from './routes/v1/upload.js'
 import { webhookRoutes } from './routes/v1/webhooks.js'
 import { dashboardRoutes } from './routes/v1/dashboard.js'
+import { alertRoutes } from './routes/v1/alerts.js'
 
 const fastify = Fastify({
   logger: {
@@ -54,6 +55,7 @@ await fastify.register(saleRoutes, { prefix: '/api/v1/sales' })
 await fastify.register(uploadRoutes, { prefix: '/api/v1/upload' })
 await fastify.register(webhookRoutes, { prefix: '/api/v1/webhooks' })
 await fastify.register(dashboardRoutes, { prefix: '/api/v1/dashboard' })
+await fastify.register(alertRoutes, { prefix: '/api/v1/alerts' })
 
 try {
   await fastify.listen({ port: env.PORT, host: '0.0.0.0' })
