@@ -65,6 +65,7 @@ model VarianteProducto {
   stockMinimo     Int       @default(5) @map("stock_minimo")
   fechaCaducidad  DateTime? @map("fecha_caducidad") @db.Date
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  alertaLeida      Boolean  @default(false)
 
   producto        Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade)
   detalles        DetalleVenta[]
