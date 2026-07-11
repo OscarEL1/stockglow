@@ -7,6 +7,7 @@ export interface DashboardSummary {
   totalVariants: number
   totalValue: number
   totalAlerts: number
+  totalVentasHoy: number
 }
 
 export function useDashboardSummary() {

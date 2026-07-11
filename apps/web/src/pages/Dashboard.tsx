@@ -69,8 +69,8 @@ export function Dashboard() {
 
         {/* Summary cards loading skeleton */}
         {isLoading && (
-          <div className="grid gap-6 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
+            {[...Array(5)].map((_, i) => (
               <div
                 key={i}
                 className="h-36 animate-pulse rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
@@ -99,7 +99,27 @@ export function Dashboard() {
 
         {/* Summary cards */}
         {!isLoading && !isError && summary && (
-          <div className="grid gap-6 md:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
+            {/* Card 0: Ventas de Hoy */}
+            <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-white p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center">
+              <div className="rounded-xl bg-blue-100/60 p-3 text-blue-600 mb-3">
+                <DollarSign className="h-6 w-6" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                Ventas de Hoy
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                $
+                {Number(summary.totalVentasHoy).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <p className="mt-3 text-xs text-[#7A7480]">
+                Ingresos acumulados hoy
+              </p>
+            </div>
+
             {/* Card 1: Unique Products */}
             <div className="relative overflow-hidden rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/50 to-white p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center">
               <div className="rounded-xl bg-pink-100/60 p-3 text-pink-600 mb-3">
