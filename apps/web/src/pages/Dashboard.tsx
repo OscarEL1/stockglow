@@ -1,16 +1,35 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Layout } from '../components/Layout'
+import { AlertsPanel } from '../components/AlertsPanel'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
 import { useSalesByDay, useTopProducts } from '../hooks/useReports'
+import { useAlerts } from '../hooks/useAlerts'
 import { SalesChart } from '../components/SalesChart'
 import { TopProductsList } from '../components/TopProductsList'
-import { Package, DollarSign, AlertTriangle, RefreshCcw } from 'lucide-react'
+import {
+  Package,
+  DollarSign,
+  AlertTriangle,
+  RefreshCcw,
+  Bell,
+} from 'lucide-react'
 
 export function Dashboard() {
-  const { data: summary, isLoading, isError, refetch } = useDashboardSummary()
+  const queryClient = useQueryClient()
+  const [isAlertsOpen, setIsAlertsOpen] = useState(false)
+  const { data: summary, isLoading, isError } = useDashboardSummary()
+  const { data: alerts = [] } = useAlerts()
   const { data: salesData, isLoading: salesLoading } = useSalesByDay()
   const [period, setPeriod] = useState<'week' | 'month'>('month')
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+    queryClient.invalidateQueries({ queryKey: ['salesByDay'] })
+    queryClient.invalidateQueries({ queryKey: ['topProducts'] })
+    queryClient.invalidateQueries({ queryKey: ['alerts'] })
+  }
 
   return (
     <Layout>
@@ -25,13 +44,27 @@ export function Dashboard() {
               Resumen en tiempo real del estado de tu inventario
             </p>
           </div>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Actualizar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAlertsOpen(true)}
+              className="relative inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+              <Bell className="h-4 w-4" />
+              Alertas
+              {alerts.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                  {alerts.length > 9 ? '9+' : alerts.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              Actualizar
+            </button>
+          </div>
         </div>
 
         {/* Summary cards loading skeleton */}
@@ -56,7 +89,7 @@ export function Dashboard() {
               No pudimos recuperar las estadísticas de tu inventario.
             </p>
             <button
-              onClick={() => refetch()}
+              onClick={handleRefresh}
               className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
             >
               Reintentar
@@ -121,7 +154,9 @@ export function Dashboard() {
 
             {/* Card 4: Active Alerts */}
             <div
-              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center ${
+              role="button"
+              onClick={() => setIsAlertsOpen(true)}
+              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md cursor-pointer flex flex-col items-center text-center ${
                 summary.totalAlerts > 0
                   ? 'border-yellow-200 bg-gradient-to-br from-yellow-50/40 to-white'
                   : 'border-gray-100 bg-gradient-to-br from-gray-50/50 to-white'
@@ -149,6 +184,11 @@ export function Dashboard() {
               <p className="mt-3 text-xs text-[#7A7480]">
                 Variantes con stock bajo
               </p>
+              {alerts.length > 0 && (
+                <p className="mt-1 text-xs font-medium text-yellow-600">
+                  Ver alertas
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -168,6 +208,11 @@ export function Dashboard() {
           </div>
         </div>
       </div>
+
+      <AlertsPanel
+        isOpen={isAlertsOpen}
+        onClose={() => setIsAlertsOpen(false)}
+      />
     </Layout>
   )
 }

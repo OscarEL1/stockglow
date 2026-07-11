@@ -11,9 +11,13 @@ export async function alertRoutes(fastify: FastifyInstance) {
     },
     async (request: any, reply) => {
       const { tenantId } = request
+      const includeRead = (request.query as any)?.includeRead === 'true'
+      const whereClause = includeRead
+        ? { tenantId }
+        : { tenantId, leida: false }
 
       const alertas = await prisma.alerta.findMany({
-        where: { tenantId, leida: false },
+        where: whereClause,
         include: {
           variante: {
             select: {

@@ -1,9 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
 import { useAlerts } from '../hooks/useAlerts'
-import { AlertsPanel } from './AlertsPanel'
 import {
   LayoutDashboard,
   Package,
@@ -48,7 +46,6 @@ export function Sidebar() {
   const { signOut } = useClerk()
   const { isEmployee } = useRole()
   const { data: alerts = [] } = useAlerts()
-  const [isAlertsOpen, setIsAlertsOpen] = useState(false)
 
   const visibleItems = isEmployee
     ? NAV_ITEMS.filter((item) => !item.adminOnly)
@@ -107,18 +104,6 @@ export function Sidebar() {
             </>
           )
 
-          if (isAlertItem) {
-            return (
-              <button
-                key={path}
-                onClick={() => setIsAlertsOpen(true)}
-                className={baseClasses}
-              >
-                {content}
-              </button>
-            )
-          }
-
           return (
             <Link key={path} to={path} className={baseClasses}>
               {content}
@@ -149,11 +134,6 @@ export function Sidebar() {
           </button>
         </div>
       </div>
-
-      <AlertsPanel
-        isOpen={isAlertsOpen}
-        onClose={() => setIsAlertsOpen(false)}
-      />
     </aside>
   )
 }
