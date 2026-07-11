@@ -89,9 +89,7 @@ export function EditVariantModal({
 
     if (!validateForm()) return
 
-    const expirationDate = fechaCaducidad
-      ? new Date(`${fechaCaducidad}T00:00:00.000Z`).toISOString()
-      : null
+    const expirationDate = fechaCaducidad || null
 
     mutate(
       {
