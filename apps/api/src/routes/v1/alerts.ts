@@ -19,8 +19,10 @@ export async function alertRoutes(fastify: FastifyInstance) {
             select: {
               nombreVariante: true,
               sku: true,
+              stockActual: true,
+              stockMinimo: true,
               producto: {
-                select: { nombre: true },
+                select: { nombre: true, marca: true },
               },
             },
           },
@@ -29,6 +31,22 @@ export async function alertRoutes(fastify: FastifyInstance) {
       })
 
       return reply.send(successResponse(alertas))
+    }
+  )
+
+  // PATCH /api/v1/alerts/:id/read
+  fastify.patch(
+    '/:id/read',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+      await prisma.alerta.update({
+        where: { id, tenantId: request.tenantId },
+        data: { leida: true },
+      })
+      return reply.send(successResponse({ id, leida: true }))
     }
   )
 
