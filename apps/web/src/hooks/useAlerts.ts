@@ -16,7 +16,7 @@ export interface Alert {
   }
 }
 
-export function useAlerts() {
+export function useAlerts(enabled = true) {
   const { getToken } = useAuth()
   const queryClient = useQueryClient()
 
@@ -26,6 +26,7 @@ export function useAlerts() {
       const res = await fetchWithAuth(getToken, '/api/v1/alerts')
       return res.data as Alert[]
     },
+    enabled,
   })
 
   const markAsRead = useMutation({
