@@ -38,9 +38,9 @@ export function EditProductModal({
         id: product.id,
         data: {
           nombre: nombre.trim(),
-          marca: marca.trim() || undefined,
-          categoria: categoria.trim() || undefined,
-          descripcion: descripcion.trim() || undefined,
+          marca: marca.trim(),
+          categoria: categoria.trim(),
+          descripcion: descripcion.trim(),
         },
       },
       {

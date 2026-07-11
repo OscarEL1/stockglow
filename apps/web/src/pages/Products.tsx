@@ -6,7 +6,7 @@ import { useProducts, type Product } from '../hooks/useProducts'
 import { useRole } from '../hooks/useRole'
 import { AddProductModal } from '../components/AddProductModal'
 import { EditProductModal } from '../components/EditProductModal'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 
 export function Products() {
   const { data: products = [], isLoading, error } = useProducts()
@@ -170,17 +170,7 @@ export function Products() {
                               <Pencil size={17} />
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                console.log('Eliminar producto:', product.id)
-                              }}
-                              title="Eliminar producto"
-                              aria-label={`Eliminar ${product.nombre}`}
-                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#F1DDE5] text-[#7A7480] transition hover:border-red-300 hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Trash2 size={17} />
-                            </button>
+                            {/* TODO: HU-012 — Eliminar producto */}
                           </div>
                         </td>
                       )}
