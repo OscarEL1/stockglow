@@ -9,6 +9,7 @@ interface UpdateVariantData {
   precioVenta: number
   stockMinimo: number
   fechaCaducidad: string | null
+  imagenUrl?: string | null
 }
 
 interface UpdateVariantVariables {
