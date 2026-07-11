@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
-import { Check } from 'lucide-react'
+import { Check, Calendar } from 'lucide-react'
 
 interface Alerta {
   id: string
   tipo: 'BAJO_STOCK' | 'CADUCIDAD_PROXIMA'
   leida: boolean
   createdAt: string
+  fechaCaducidad?: string
+  diasRestantes?: number
   variante: {
     id: string
     sku: string
@@ -48,8 +50,10 @@ function AlertsTable({
         </thead>
         <tbody className="divide-y divide-gray-50 font-medium">
           {alerts.map((alert) => {
-            const { variante } = alert
+            const { variante, tipo, fechaCaducidad, diasRestantes } = alert
             const { stockActual, stockMinimo } = variante
+            const esCaducado =
+              typeof diasRestantes === 'number' && diasRestantes <= 0
 
             return (
               <tr key={alert.id} className="hover:bg-gray-50/50">
@@ -58,8 +62,32 @@ function AlertsTable({
                     {variante.producto.nombre}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {variante.producto.marca}
+                    {variante.producto.marca || 'Sin marca'}
                   </div>
+
+                  {tipo === 'CADUCIDAD_PROXIMA' &&
+                    fechaCaducidad &&
+                    typeof diasRestantes === 'number' && (
+                      <div className="mt-1 inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                        <Calendar size={12} />
+                        Vence: {new Date(fechaCaducidad).toLocaleDateString()}
+                        <span
+                          className={
+                            esCaducado
+                              ? 'ml-1 font-bold text-red-600'
+                              : 'ml-1 text-orange-600'
+                          }
+                        >
+                          (
+                          {esCaducado
+                            ? diasRestantes === 0
+                              ? 'Vence hoy'
+                              : `Caducado hace ${Math.abs(diasRestantes)} días`
+                            : `Quedan ${diasRestantes} días`}
+                          )
+                        </span>
+                      </div>
+                    )}
                 </td>
                 <td className="px-4 py-4 text-gray-600">
                   {variante.nombreVariante}
@@ -71,16 +99,26 @@ function AlertsTable({
                   {stockActual}
                 </td>
                 <td className="px-4 py-4 text-center text-gray-400">
-                  {stockMinimo}
+                  {tipo === 'BAJO_STOCK' ? stockMinimo : '-'}
                 </td>
                 <td className="px-4 py-4">
-                  {stockActual === 0 ? (
-                    <span className="inline-flex items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
-                      Agotado
+                  {tipo === 'BAJO_STOCK' ? (
+                    stockActual === 0 ? (
+                      <span className="inline-flex items-center rounded-lg border border-red-100 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+                        Agotado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600">
+                        Stock bajo
+                      </span>
+                    )
+                  ) : esCaducado ? (
+                    <span className="inline-flex items-center rounded-lg border border-red-200 bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+                      Caducado
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-600">
-                      Stock bajo
+                    <span className="inline-flex items-center rounded-lg border border-orange-100 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-600">
+                      Próximo a vencer
                     </span>
                   )}
                 </td>
@@ -158,7 +196,8 @@ export default function Alerts() {
             Alertas y Notificaciones
           </h1>
           <p className="text-sm text-[#7A7480]">
-            Gestiona los productos que requieren reposición inmediata.
+            Gestiona los productos que requieren reposición inmediata o atención
+            por caducidad.
           </p>
         </div>
 

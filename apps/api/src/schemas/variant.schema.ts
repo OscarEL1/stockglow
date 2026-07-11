@@ -8,7 +8,7 @@ export const createVariantSchema = z.object({
   precioVenta: z.number().positive(),
   stockActual: z.number().int().min(0).default(0),
   stockMinimo: z.number().int().min(0).default(5),
-  fechaCaducidad: z.string().datetime().optional(),
+  fechaCaducidad: z.string().date().optional(),
 })
 
 export const updateVariantSchema = createVariantSchema.partial().omit({

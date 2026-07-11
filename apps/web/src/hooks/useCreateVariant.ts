@@ -10,6 +10,7 @@ interface CreateVariantData {
   stockActual: number
   stockMinimo: number
   imagenUrl?: string
+  fechaCaducidad?: string
 }
 
 export function useCreateVariant() {

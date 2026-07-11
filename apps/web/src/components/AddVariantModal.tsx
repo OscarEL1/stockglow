@@ -57,6 +57,8 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
         stockActual: Number(stockActual),
         stockMinimo: Number(stockMinimo),
         imagenUrl: urlFinal || undefined,
+        // 🚀 AÑADE ESTA LÍNEA PARA MANDAR LA FECHA AL BACKEND:
+        fechaCaducidad: fechaCaducidad || undefined,
       },
       {
         onSuccess: () => {

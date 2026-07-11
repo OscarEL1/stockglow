@@ -25,7 +25,7 @@ export function useAlerts() {
     queryFn: async () => {
       const res = await fetchWithAuth(getToken, '/api/v1/alerts')
       return res.data as Alert[]
-    }
+    },
   })
 
   const markAsRead = useMutation({
@@ -36,11 +36,11 @@ export function useAlerts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alerts'] })
-    }
+    },
   })
 
   return {
     ...query,
-    markAsRead
+    markAsRead,
   }
 }
