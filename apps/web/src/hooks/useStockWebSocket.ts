@@ -5,7 +5,10 @@ import type { QueryClient } from '@tanstack/react-query'
 const MAX_RETRIES = 5
 const RETRY_DELAY_MS = 3000
 
-export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
+export function useStockWebSocket(
+  tenantId: string | null,
+  queryClient: QueryClient
+) {
   const { getToken } = useAuth()
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -41,6 +44,9 @@ export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
               if (msg.event === 'stock:update') {
                 queryClient.invalidateQueries({ queryKey: ['variants'] })
                 queryClient.invalidateQueries({ queryKey: ['alerts'] })
+                queryClient.invalidateQueries({
+                  queryKey: ['dashboard-summary'],
+                })
               }
             } catch {
               // ignore malformed messages

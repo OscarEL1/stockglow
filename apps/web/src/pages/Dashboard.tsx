@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useOrganization } from '@clerk/clerk-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Layout } from '../components/Layout'
 import { AlertsPanel } from '../components/AlertsPanel'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
 import { useSalesByDay, useTopProducts } from '../hooks/useReports'
 import { useAlerts } from '../hooks/useAlerts'
+import { useStockWebSocket } from '../hooks/useStockWebSocket'
 import { SalesChart } from '../components/SalesChart'
 import { TopProductsList } from '../components/TopProductsList'
 import {
@@ -16,7 +18,10 @@ import {
 } from 'lucide-react'
 
 export function Dashboard() {
+  const { organization } = useOrganization()
   const queryClient = useQueryClient()
+  useStockWebSocket(organization?.id ?? null, queryClient)
+
   const [isAlertsOpen, setIsAlertsOpen] = useState(false)
   const { data: summary, isLoading, isError } = useDashboardSummary()
   const { data: alerts = [] } = useAlerts()
