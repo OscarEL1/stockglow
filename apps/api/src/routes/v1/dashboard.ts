@@ -34,12 +34,27 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
 
       const totalVariants = variants.length
 
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const ventasQuery = await prisma.venta.aggregate({
+        where: {
+          tenantId: request.tenantId,
+          createdAt: { gte: today },
+          estado: 'COMPLETADA',
+        },
+        _sum: { total: true },
+      })
+      
+      const totalVentasHoy = Number(ventasQuery._sum.total || 0)
+
       return reply.send(
         successResponse({
           totalProducts,
           totalVariants,
           totalValue,
           totalAlerts,
+          totalVentasHoy,
         })
       )
     }
