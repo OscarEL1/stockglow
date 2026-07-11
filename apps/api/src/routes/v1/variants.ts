@@ -130,4 +130,70 @@ export async function variantRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(movements))
     }
   )
+  // PATCH /api/v1/inventory/variants/:id
+  fastify.patch(
+    '/:id',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const input = updateVariantSchema.parse(request.body)
+
+      const variant = await prisma.varianteProducto.findFirst({
+        where: {
+          id: request.params.id,
+          tenantId: request.tenantId,
+        },
+      })
+
+      if (!variant) throw Errors.VARIANT_NOT_FOUND()
+
+      if (input.sku && input.sku !== variant.sku) {
+        const skuExists = await prisma.varianteProducto.findFirst({
+          where: {
+            tenantId: request.tenantId,
+            sku: input.sku,
+            id: {
+              not: request.params.id,
+            },
+          },
+        })
+
+        if (skuExists) throw Errors.SKU_ALREADY_EXISTS()
+      }
+
+      const updated = await prisma.varianteProducto.update({
+        where: {
+          id: request.params.id,
+        },
+        data: {
+          ...(input.sku !== undefined && {
+            sku: input.sku,
+          }),
+          ...(input.nombreVariante !== undefined && {
+            nombreVariante: input.nombreVariante,
+          }),
+          ...(input.imagenUrl !== undefined && {
+            imagenUrl: input.imagenUrl,
+          }),
+          ...(input.precioVenta !== undefined && {
+            precioVenta: input.precioVenta,
+          }),
+          ...(input.stockMinimo !== undefined && {
+            stockMinimo: input.stockMinimo,
+          }),
+          ...(input.fechaCaducidad !== undefined && {
+            fechaCaducidad: input.fechaCaducidad
+              ? new Date(input.fechaCaducidad)
+              : null,
+          }),
+        },
+        include: {
+          producto: true,
+        },
+      })
+
+      return reply.send(successResponse(updated))
+    }
+  )
 }

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useVariants } from '../hooks/useVariants'
-import { History } from 'lucide-react'
+import { useVariants, type Variant } from '../hooks/useVariants'
+import { History, Pencil, Trash2 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
+import { EditVariantModal } from './EditVariantModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 
@@ -72,9 +73,15 @@ function EmptyState() {
   )
 }
 
-export function VariantsTable() {
+interface Props {
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}
+
+export function VariantsTable({ onSuccess, onError }: Props) {
   const { data: variants = [], isLoading, isError, error } = useVariants()
   const [search, setSearch] = useState('')
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [historyVariant, setHistoryVariant] = useState<{
     id: string
     name: string
@@ -209,19 +216,44 @@ export function VariantsTable() {
                         <StockBadge stock={stockActual} minimo={stockMinimo} />
                       </td>
                       <td className="px-6 py-5 text-right">
-                        <button
-                          onClick={() =>
-                            setHistoryVariant({
-                              id: variant.id,
-                              name: `${variant.producto.nombre} - ${variant.nombreVariante}`,
-                            })
-                          }
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 transition-colors"
-                          title="Ver historial de movimientos"
-                        >
-                          <History className="h-4 w-4" />
-                          <span className="hidden sm:inline">Historial</span>
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-pink-200 bg-white text-pink-600 shadow-sm transition hover:border-pink-400 hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                            title="Editar variante"
+                            aria-label={`Editar ${variant.nombreVariante}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setHistoryVariant({
+                                id: variant.id,
+                                name: `${variant.producto.nombre} - ${variant.nombreVariante}`,
+                              })
+                            }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                            title="Ver historial de movimientos"
+                            aria-label={`Ver historial de ${variant.nombreVariante}`}
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              console.log('Eliminar variante:', variant.id)
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            title="Eliminar variante"
+                            aria-label={`Eliminar ${variant.nombreVariante}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -230,6 +262,16 @@ export function VariantsTable() {
             </table>
           </div>
         </div>
+      )}
+
+      {selectedVariant && (
+        <EditVariantModal
+          key={selectedVariant.id}
+          variant={selectedVariant}
+          onClose={() => setSelectedVariant(null)}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
       )}
 
       <VariantHistoryModal

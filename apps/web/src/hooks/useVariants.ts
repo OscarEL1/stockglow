@@ -4,12 +4,15 @@ import { fetchWithAuth } from '../lib/api'
 
 export interface Variant {
   id: string
+  productoId: string
   sku: string
   nombreVariante: string
   precioVenta: string
   stockActual: number
   stockMinimo: number
   imagenUrl: string | null
+  fechaCaducidad: string | null
+  updatedAt: string
   producto: {
     nombre: string
     marca: string | null

@@ -4,16 +4,16 @@ export const createVariantSchema = z.object({
   productoId: z.string().uuid(),
   sku: z.string().min(1).max(50),
   nombreVariante: z.string().min(1).max(100),
-  imagenUrl: z.string().url().optional(),
+  imagenUrl: z.string().url().nullable().optional(),
   precioVenta: z.number().positive(),
   stockActual: z.number().int().min(0).default(0),
   stockMinimo: z.number().int().min(0).default(5),
-  fechaCaducidad: z.string().date().optional(),
+  fechaCaducidad: z.string().date().nullable().optional(),
 })
 
 export const updateVariantSchema = createVariantSchema.partial().omit({
   productoId: true,
-  sku: true,
+  stockActual: true,
 })
 
 export const adjustStockSchema = z.object({

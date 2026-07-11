@@ -53,7 +53,10 @@ export function Inventory() {
         )}
       </div>
 
-      <VariantsTable />
+      <VariantsTable
+        onSuccess={(message) => showToast(message, 'success')}
+        onError={(message) => showToast(message, 'error')}
+      />
 
       {showProductModal && (
         <AddProductModal
