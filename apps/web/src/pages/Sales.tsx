@@ -5,6 +5,8 @@ import type { Sale } from '../hooks/useSales'
 import { useCreateSale } from '../hooks/useCreateSale'
 import { useCancelSale } from '../hooks/useCancelSale'
 import { Layout } from '../components/Layout'
+import { useOrganization } from '@clerk/clerk-react'
+import { generateReceiptPDF } from '../lib/generateReceiptPDF'
 
 interface SaleItemLocal {
   varianteId: string
@@ -43,6 +45,7 @@ function SaleDetailModal({
 }) {
   const [showConfirm, setShowConfirm] = useState(false)
   const cancelSale = useCancelSale()
+  const { organization } = useOrganization()
 
   async function handleConfirmCancel() {
     await cancelSale.mutateAsync(sale.id)
@@ -209,14 +212,24 @@ function SaleDetailModal({
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between">
-          {sale.estado === 'COMPLETADA' && !showConfirm && (
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="rounded-xl bg-red-500 px-6 py-2 text-sm font-bold text-white hover:bg-red-600"
-            >
-              Cancelar venta
-            </button>
-          )}
+          <div className="flex gap-3">
+            {sale.estado === 'COMPLETADA' && !showConfirm && (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="rounded-xl bg-red-500 px-6 py-2 text-sm font-bold text-white hover:bg-red-600"
+              >
+                Cancelar venta
+              </button>
+            )}
+            {sale.estado === 'COMPLETADA' && (
+              <button
+                onClick={() => generateReceiptPDF(sale, organization?.name || 'Tienda')}
+                className="rounded-xl bg-[#2D2A32] px-6 py-2 text-sm font-bold text-white hover:bg-black"
+              >
+                Imprimir ticket
+              </button>
+            )}
+          </div>
           <div className="ml-auto">
             <button
               onClick={onClose}
