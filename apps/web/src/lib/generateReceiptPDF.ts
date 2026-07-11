@@ -20,10 +20,19 @@ export function generateReceiptPDF(sale: Sale, tenantName: string) {
 
   doc.setFontSize(8)
   const date = new Date(sale.createdAt)
-  doc.text(`Fecha: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`, 40, 22, { align: 'center' })
-  doc.text(`Folio: ${sale.id.slice(-8).toUpperCase()}`, 40, 26, { align: 'center' })
+  doc.text(
+    `Fecha: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`,
+    40,
+    22,
+    { align: 'center' }
+  )
+  doc.text(`Folio: ${sale.id.slice(-8).toUpperCase()}`, 40, 26, {
+    align: 'center',
+  })
 
-  doc.text('------------------------------------------------', 40, 32, { align: 'center' })
+  doc.text('------------------------------------------------', 40, 32, {
+    align: 'center',
+  })
 
   // Productos
   const tableData = sale.detalles.map((detalle) => [
@@ -48,16 +57,20 @@ export function generateReceiptPDF(sale: Sale, tenantName: string) {
     margin: { left: 5, right: 5 },
   })
 
-  // @ts-ignore
+  // @ts-expect-error jspdf-autotable no expone lastAutoTable en los tipos de jsPDF
   const finalY = doc.lastAutoTable.finalY || 40
 
-  doc.text('------------------------------------------------', 40, finalY + 4, { align: 'center' })
+  doc.text('------------------------------------------------', 40, finalY + 4, {
+    align: 'center',
+  })
 
   // Total
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
   doc.text('TOTAL:', 10, finalY + 10)
-  doc.text(`$${Number(sale.total).toFixed(2)} MXN`, 70, finalY + 10, { align: 'right' })
+  doc.text(`$${Number(sale.total).toFixed(2)} MXN`, 70, finalY + 10, {
+    align: 'right',
+  })
 
   // Pie de ticket
   doc.setFontSize(8)
