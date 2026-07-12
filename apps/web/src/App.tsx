@@ -10,7 +10,9 @@ import Onboarding from './pages/Onboarding'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
+import { Settings } from './pages/Settings'
 import { useOnboardingStatus } from './hooks/useOnboardingStatus'
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -159,7 +161,7 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ProtectedByRole role="admin">
-              <ComingSoon title="Configuración" />
+              <Settings />
             </ProtectedByRole>
           </ProtectedRoute>
         }
