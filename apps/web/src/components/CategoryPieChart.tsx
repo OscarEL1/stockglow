@@ -5,7 +5,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  type TooltipProps,
+  type TooltipContentProps,
 } from 'recharts'
 import type {
   ValueType,
@@ -26,7 +26,10 @@ const COLORS = [
   '#F97316',
 ]
 
-function CustomTooltip({ active, payload }: TooltipProps<ValueType, NameType>) {
+function CustomTooltip({
+  active,
+  payload,
+}: TooltipContentProps<ValueType, NameType>) {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     return (
@@ -111,7 +114,7 @@ export function CategoryPieChart() {
               />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={CustomTooltip} />
           <Legend
             formatter={(value) => (
               <span className="text-xs text-gray-600">{value}</span>
