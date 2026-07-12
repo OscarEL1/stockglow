@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useUpdateProduct } from '../hooks/useUpdateProduct'
+import { useCategories } from '../hooks/useCategories'
 import type { Product } from '../hooks/useProducts'
 
 interface Props {
@@ -22,6 +23,7 @@ export function EditProductModal({
   const [nombreError, setNombreError] = useState('')
 
   const { mutate, isPending, error } = useUpdateProduct()
+  const { data: categories = [] } = useCategories()
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -130,12 +132,18 @@ export function EditProductModal({
                   Categoría
                 </label>
 
-                <input
-                  type="text"
+                <select
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
                   className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
-                />
+                >
+                  <option value="">Sin categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

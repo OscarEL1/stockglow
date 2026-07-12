@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useCreateProduct } from '../hooks/useCreateProduct'
+import { useCategories } from '../hooks/useCategories'
 
 interface Props {
   onClose: () => void
@@ -13,6 +14,7 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
   const [descripcion, setDescripcion] = useState('')
 
   const { mutate, isPending, error } = useCreateProduct()
+  const { data: categories = [] } = useCategories()
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -86,13 +88,18 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
                 <label className="mb-2 block text-xs font-bold text-[#6F6875]">
                   Categoría
                 </label>
-                <input
-                  type="text"
+                <select
                   value={categoria}
                   onChange={(e) => setCategoria(e.target.value)}
-                  placeholder="Labiales"
-                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
-                />
+                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                >
+                  <option value="">Sin categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

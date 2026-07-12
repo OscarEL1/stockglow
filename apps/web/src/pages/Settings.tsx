@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { Layout } from '../components/Layout'
 import { Toast } from '../components/Toast'
 import { useToast } from '../hooks/useToast'
 import { useSettings, useUpdateSettings } from '../hooks/useSettings'
 import { useUploadImage } from '../hooks/useUploadImage'
 import type { StoreSettings } from '../hooks/useSettings'
+import { useCategories } from '../hooks/useCategories'
+import {
+  useCreateCategory,
+  useDeleteCategory,
+} from '../hooks/useManageCategories'
 
 function LoadingState() {
   return (
@@ -228,6 +234,121 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
   )
 }
 
+function CategoriesSection({
+  onSuccess,
+  onError,
+}: {
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}) {
+  const [nombre, setNombre] = useState('')
+  const { data: categories = [], isLoading } = useCategories()
+  const createCategory = useCreateCategory()
+  const deleteCategory = useDeleteCategory()
+
+  function handleAdd(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+
+    if (!nombre.trim()) return
+
+    createCategory.mutate(nombre.trim(), {
+      onSuccess: () => {
+        onSuccess('Categoría agregada correctamente')
+        setNombre('')
+      },
+      onError: (error) => {
+        onError(
+          error instanceof Error
+            ? error.message
+            : 'No se pudo agregar la categoría'
+        )
+      },
+    })
+  }
+
+  function handleDelete(categoria: string) {
+    deleteCategory.mutate(categoria, {
+      onSuccess: () => {
+        onSuccess('Categoría eliminada correctamente')
+      },
+      onError: (error) => {
+        onError(
+          error instanceof Error
+            ? error.message
+            : 'No se pudo eliminar la categoría'
+        )
+      },
+    })
+  }
+
+  return (
+    <div className="mt-6 max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="text-base font-bold text-[#2D2A32]">Categorías</h2>
+      <p className="mt-1 text-sm text-[#7A7480]">
+        Administra las categorías disponibles para tus productos.
+      </p>
+
+      <div className="mt-5">
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
+          </div>
+        ) : categories.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">
+            Aún no hay categorías registradas.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {categories.map((categoria) => {
+              const isDeleting =
+                deleteCategory.isPending &&
+                deleteCategory.variables === categoria
+
+              return (
+                <li
+                  key={categoria}
+                  className="flex items-center justify-between rounded-xl border border-[#F1DDE5] bg-[#FFF8F9] px-4 py-3"
+                >
+                  <span className="text-sm font-medium text-[#2D2A32]">
+                    {categoria}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(categoria)}
+                    disabled={isDeleting}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 transition hover:border-red-400 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Eliminar categoría"
+                    aria-label={`Eliminar categoría ${categoria}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+
+      <form onSubmit={handleAdd} className="mt-5 flex gap-3">
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej. Labiales"
+          className="h-12 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+        />
+        <button
+          type="submit"
+          disabled={createCategory.isPending || !nombre.trim()}
+          className="h-12 min-w-[170px] whitespace-nowrap rounded-2xl bg-[#E85D8C] px-5 text-sm font-bold text-white transition hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {createCategory.isPending ? 'Agregando...' : 'Agregar categoría'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 export function Settings() {
   const { data: settings, isLoading, isError } = useSettings()
   const { toast, showToast, hideToast } = useToast()
@@ -237,7 +358,7 @@ export function Settings() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#2D2A32]">Configuración</h1>
         <p className="mt-1 text-[#7A7480]">
-          Personaliza el nombre y el logo de tu tienda.
+          Personaliza el nombre, el logo y las categorías de tu tienda.
         </p>
       </div>
 
@@ -251,6 +372,11 @@ export function Settings() {
           onError={(message) => showToast(message, 'error')}
         />
       )}
+
+      <CategoriesSection
+        onSuccess={(message) => showToast(message, 'success')}
+        onError={(message) => showToast(message, 'error')}
+      />
 
       {toast.visible && (
         <Toast message={toast.message} type={toast.type} onClose={hideToast} />
