@@ -7,6 +7,7 @@ import { clerkAuth } from './plugins/clerk.js'
 import { errorHandler } from './plugins/error-handler.js'
 import { swaggerDocs } from './plugins/swagger.js'
 import { websocketPlugin } from './plugins/websocket.js'
+import { onboardingRoutes } from './routes/v1/onboarding.js'
 import { healthRoutes } from './routes/v1/health.js'
 import { productRoutes } from './routes/v1/products.js'
 import { variantRoutes } from './routes/v1/variants.js'
@@ -49,7 +50,9 @@ await fastify.register(multipart, {
   },
 })
 
+// Registro de Rutas de la Aplicación
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
+await fastify.register(onboardingRoutes, { prefix: '/api/v1/onboarding' }) // <-- Registrado aquí de forma limpia
 await fastify.register(productRoutes, { prefix: '/api/v1/inventory/products' })
 await fastify.register(variantRoutes, { prefix: '/api/v1/inventory/variants' })
 await fastify.register(saleRoutes, { prefix: '/api/v1/sales' })

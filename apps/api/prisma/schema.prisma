@@ -14,6 +14,8 @@ model Tenant {
   planSuscripcion  String    @default("basic") @map("plan_suscripcion") @db.VarChar(20)
   createdAt        DateTime  @default(now()) @map("created_at")
 
+  wizardStep       Int       @default(1) // nuevo campo
+
   usuarios         Usuario[]
   productos        Producto[]
   ventas           Venta[]

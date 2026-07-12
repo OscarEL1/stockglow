@@ -6,9 +6,11 @@ import { Sales } from './pages/Sales'
 import { Users } from './pages/Users'
 import Alerts from './pages/Alerts'
 import { AccessDenied } from './pages/AccessDenied'
+import Onboarding from './pages/Onboarding'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
+import { useOnboardingStatus } from './hooks/useOnboardingStatus'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -26,6 +28,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>
+}
+
+function RootRedirect() {
+  const { data: status, isLoading } = useOnboardingStatus()
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
+      </div>
+    )
+  }
+
+  const onboardingCompleto = (status?.wizardStep ?? 1) >= 3
+
+  return (
+    <Navigate to={onboardingCompleto ? '/dashboard' : '/onboarding'} replace />
+  )
 }
 
 function ComingSoon({ title }: { title: string }) {
@@ -57,6 +77,15 @@ export default function App() {
           <div className="flex min-h-screen items-center justify-center bg-[#FFF8F9]">
             <SignUp routing="path" path="/register" />
           </div>
+        }
+      />
+
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <Onboarding />
+          </ProtectedRoute>
         }
       />
 
@@ -145,7 +174,14 @@ export default function App() {
         }
       />
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <RootRedirect />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   )
 }
