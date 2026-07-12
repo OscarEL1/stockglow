@@ -78,20 +78,39 @@ export async function variantRoutes(fastify: FastifyInstance) {
 
       if (!variant) throw Errors.VARIANT_NOT_FOUND()
 
-      const newStock = variant.stockActual + input.cantidad
+      const newStock =
+        input.tipo === 'AJUSTE'
+          ? input.cantidad
+          : variant.stockActual + input.cantidad
 
-      if (newStock < 0) throw Errors.INSUFFICIENT_STOCK()
+      if (newStock < 0) {
+        throw Errors.INSUFFICIENT_STOCK()
+      }
+
+      const usuario = await prisma.usuario.findFirst({
+        where: {
+          tenantId: request.tenantId,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      })
+
+      if (!usuario) {
+        throw new Error('No existe un usuario registrado para esta tienda')
+      }
 
       const [updated] = await prisma.$transaction([
         prisma.varianteProducto.update({
           where: { id: request.params.id },
           data: { stockActual: newStock },
         }),
+
         prisma.movimientoStock.create({
           data: {
             tenantId: request.tenantId,
             varianteId: request.params.id,
-            usuarioId: request.userId,
+            usuarioId: usuario.id,
             tipo: input.tipo,
             cantidad: input.cantidad,
             motivo: input.motivo,
