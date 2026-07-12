@@ -90,9 +90,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       const usuario = await prisma.usuario.findFirst({
         where: {
           tenantId: request.tenantId,
-        },
-        orderBy: {
-          createdAt: 'asc',
+          clerkUserId: request.userId,
         },
       })
 
