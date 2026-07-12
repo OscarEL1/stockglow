@@ -9,6 +9,7 @@ import { AccessDenied } from './pages/AccessDenied'
 import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
+import { Settings } from './pages/Settings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -130,7 +131,7 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ProtectedByRole role="admin">
-              <ComingSoon title="Configuración" />
+              <Settings />
             </ProtectedByRole>
           </ProtectedRoute>
         }

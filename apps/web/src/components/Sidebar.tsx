@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
 import { useAlerts } from '../hooks/useAlerts'
+import { useSettings } from '../hooks/useSettings'
 import {
   LayoutDashboard,
   Package,
@@ -46,6 +47,7 @@ export function Sidebar() {
   const { signOut } = useClerk()
   const { isEmployee } = useRole()
   const { data: alerts = [] } = useAlerts()
+  const { data: settings } = useSettings()
 
   const visibleItems = isEmployee
     ? NAV_ITEMS.filter((item) => !item.adminOnly)
@@ -60,24 +62,39 @@ export function Sidebar() {
     <aside className="flex h-screen w-60 flex-col border-r border-gray-100 bg-white">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDE8F0]">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="7" y="1" width="6" height="4" rx="1.5" fill="#E85D8C" />
-            <rect x="8" y="5" width="4" height="2.5" rx="0.5" fill="#D94B7D" />
-            <rect x="6" y="7.5" width="8" height="11" rx="2" fill="#E85D8C" />
-            <rect
-              x="8"
-              y="8.5"
-              width="3"
-              height="3.5"
-              rx="0.75"
-              fill="white"
-              fillOpacity="0.3"
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FDE8F0] overflow-hidden">
+          {settings?.logoUrl ? (
+            <img
+              src={settings.logoUrl}
+              alt="Logo de la tienda"
+              className="h-full w-full object-cover"
             />
-          </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="7" y="1" width="6" height="4" rx="1.5" fill="#E85D8C" />
+              <rect
+                x="8"
+                y="5"
+                width="4"
+                height="2.5"
+                rx="0.5"
+                fill="#D94B7D"
+              />
+              <rect x="6" y="7.5" width="8" height="11" rx="2" fill="#E85D8C" />
+              <rect
+                x="8"
+                y="8.5"
+                width="3"
+                height="3.5"
+                rx="0.75"
+                fill="white"
+                fillOpacity="0.3"
+              />
+            </svg>
+          )}
         </div>
-        <span className="text-base font-semibold text-[#2D2A32]">
-          StockGlow
+        <span className="truncate text-base font-semibold text-[#2D2A32]">
+          {settings?.nombre || 'StockGlow'}
         </span>
       </div>
 

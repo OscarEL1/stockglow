@@ -11,8 +11,10 @@ datasource db {
 model Tenant {
   id               String    @id @default(uuid())
   nombreTienda     String    @map("nombre_tienda") @db.VarChar(100)
+  logoUrl          String?   @map("logo_url")
   planSuscripcion  String    @default("basic") @map("plan_suscripcion") @db.VarChar(20)
   createdAt        DateTime  @default(now()) @map("created_at")
+  wizardStep       Int       @default(1)
 
   usuarios         Usuario[]
   productos        Producto[]
@@ -65,7 +67,7 @@ model VarianteProducto {
   stockMinimo     Int       @default(5) @map("stock_minimo")
   fechaCaducidad  DateTime? @map("fecha_caducidad") @db.Date
   updatedAt       DateTime  @updatedAt @map("updated_at")
-  
+  alertaLeida     Boolean   @default(false) @map("alerta_leida")
 
   producto        Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade)
   detalles        DetalleVenta[]
