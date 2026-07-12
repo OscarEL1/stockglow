@@ -17,6 +17,7 @@ import { AdjustStockModal } from './AdjustStockModal'
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 type SortField = 'name' | 'price' | 'stock'
 type SortDirection = 'asc' | 'desc'
+const ITEMS_PER_PAGE = 20
 
 interface SortIconProps {
   field: SortField
@@ -111,6 +112,7 @@ interface Props {
 export function VariantsTable({ onSuccess, onError }: Props) {
   const [search, setSearch] = useState('')
   const [categoria, setCategoria] = useState('Todas')
+  const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
@@ -129,6 +131,7 @@ export function VariantsTable({ onSuccess, onError }: Props) {
   } | null>(null)
 
   function handleSort(field: SortField) {
+    setCurrentPage(1)
     if (sortField === field) {
       setSortDirection((currentDirection) =>
         currentDirection === 'asc' ? 'desc' : 'asc'
@@ -190,6 +193,13 @@ export function VariantsTable({ onSuccess, onError }: Props) {
     })
   }, [variants, search, sortField, sortDirection])
 
+  const totalPages = Math.ceil(visibleVariants.length / ITEMS_PER_PAGE)
+
+  const paginatedVariants = visibleVariants.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
   if (isLoading) {
     return <LoadingState />
   }
@@ -209,13 +219,19 @@ export function VariantsTable({ onSuccess, onError }: Props) {
           <input
             type="text"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setCurrentPage(1)
+            }}
             placeholder="Buscar producto, SKU o tono..."
             className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
           />
           <select
             value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
+            onChange={(e) => {
+              setCategoria(e.target.value)
+              setCurrentPage(1)
+            }}
             className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:w-48"
           >
             <option value="Todas">Todas las categorías</option>
@@ -333,7 +349,7 @@ export function VariantsTable({ onSuccess, onError }: Props) {
               </thead>
 
               <tbody className="divide-y divide-gray-200 bg-white">
-                {visibleVariants.map((variant) => {
+                {paginatedVariants.map((variant) => {
                   const stockActual = Number(variant.stockActual)
                   const stockMinimo = Number(variant.stockMinimo)
                   const precioVenta = Number(variant.precioVenta)
@@ -443,6 +459,57 @@ export function VariantsTable({ onSuccess, onError }: Props) {
           onSuccess={onSuccess}
           onError={onError}
         />
+      )}
+
+      {visibleVariants.length > ITEMS_PER_PAGE && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Página {currentPage} de {totalPages}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1
+              const isActive = currentPage === pageNumber
+
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNumber)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`h-10 min-w-10 rounded-lg border px-3 text-sm font-semibold transition ${
+                    isActive
+                      ? 'border-[#E85D8C] bg-[#E85D8C] text-white'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-pink-300 hover:bg-pink-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       )}
 
       {selectedVariant && (
