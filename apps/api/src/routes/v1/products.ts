@@ -57,6 +57,28 @@ export async function productRoutes(fastify: FastifyInstance) {
     }
   )
 
+  // GET /api/v1/inventory/products/categories
+  fastify.get(
+    '/categories',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const categories = await prisma.producto.findMany({
+        where: { tenantId: request.tenantId, categoria: { not: null } },
+        select: { categoria: true },
+        distinct: ['categoria'],
+      })
+
+      const uniqueCategories = categories
+        .map((c) => c.categoria)
+        .filter(Boolean)
+        .sort()
+
+      return reply.send(successResponse(uniqueCategories))
+    }
+  )
+
   // GET /api/v1/inventory/products/:id
   fastify.get(
     '/:id',

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
+import { useCategories } from '../hooks/useCategories'
 import { History, Pencil, Trash2 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
@@ -79,9 +80,17 @@ interface Props {
 }
 
 export function VariantsTable({ onSuccess, onError }: Props) {
-  const { data: variants = [], isLoading, isError, error } = useVariants()
   const [search, setSearch] = useState('')
+  const [categoria, setCategoria] = useState('Todas')
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
+
+  const { data: categories = [] } = useCategories()
+  const {
+    data: variants = [],
+    isLoading,
+    isError,
+    error,
+  } = useVariants(categoria)
   const [historyVariant, setHistoryVariant] = useState<{
     id: string
     name: string
@@ -122,13 +131,27 @@ export function VariantsTable({ onSuccess, onError }: Props) {
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar producto, SKU o tono..."
-          className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:max-w-sm"
-        />
+        <div className="flex w-full flex-col gap-3 md:max-w-xl md:flex-row md:items-center">
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar producto, SKU o tono..."
+            className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+          />
+          <select
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:w-48"
+          >
+            <option value="Todas">Todas las categorías</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="text-sm text-gray-500">
           {filteredVariants.length} variante

@@ -46,8 +46,15 @@ export async function variantRoutes(fastify: FastifyInstance) {
       preHandler: [fastify.authenticate],
     },
     async (request: any, reply) => {
+      const { categoria } = request.query as { categoria?: string }
+
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
+        where: {
+          tenantId: request.tenantId,
+          ...(categoria && categoria !== 'Todas'
+            ? { producto: { categoria } }
+            : {}),
+        },
         include: { producto: true },
         orderBy: { updatedAt: 'desc' },
       })
