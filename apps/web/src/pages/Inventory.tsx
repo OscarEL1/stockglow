@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useOrganization } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,6 +18,8 @@ export function Inventory() {
   const { toast, showToast, hideToast } = useToast()
   const [showProductModal, setShowProductModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
+  const [searchParams] = useSearchParams()
+  const statusFilter = searchParams.get('status')
 
   useStockWebSocket(organization?.id ?? '', queryClient)
 
@@ -54,6 +57,7 @@ export function Inventory() {
       </div>
 
       <VariantsTable
+        statusFilter={statusFilter}
         onSuccess={(message) => showToast(message, 'success')}
         onError={(message) => showToast(message, 'error')}
       />

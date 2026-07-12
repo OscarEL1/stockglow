@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
+  AlertTriangle,
 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
@@ -18,6 +19,49 @@ type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 type SortField = 'name' | 'price' | 'stock'
 type SortDirection = 'asc' | 'desc'
 const ITEMS_PER_PAGE = 20
+const DIAS_ALERTA_CADUCIDAD = 30
+
+function CaducidadCell({ fechaCaducidad }: { fechaCaducidad: string | null }) {
+  if (!fechaCaducidad) {
+    return null
+  }
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const caducidad = new Date(fechaCaducidad)
+  caducidad.setHours(0, 0, 0, 0)
+
+  const diasRestantes = Math.floor(
+    (caducidad.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  const fechaFormateada = caducidad.toLocaleDateString('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  if (diasRestantes < 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        Caducado
+      </span>
+    )
+  }
+
+  if (diasRestantes <= DIAS_ALERTA_CADUCIDAD) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-500">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        {fechaFormateada}
+      </span>
+    )
+  }
+
+  return <span className="text-sm text-gray-500">{fechaFormateada}</span>
+}
 
 interface SortIconProps {
   field: SortField
@@ -105,11 +149,12 @@ function EmptyState() {
 }
 
 interface Props {
+  statusFilter?: string | null
   onSuccess: (message: string) => void
   onError: (message: string) => void
 }
 
-export function VariantsTable({ onSuccess, onError }: Props) {
+export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
   const [search, setSearch] = useState('')
   const [categoria, setCategoria] = useState('Todas')
   const [currentPage, setCurrentPage] = useState(1)
@@ -147,6 +192,14 @@ export function VariantsTable({ onSuccess, onError }: Props) {
     const term = search.trim().toLowerCase()
 
     const filtered = variants.filter((variant) => {
+      const stock = Number(variant.stockActual)
+      const minimo = Number(variant.stockMinimo)
+
+      if (statusFilter === 'disponible' && !(stock > minimo)) return false
+      if (statusFilter === 'stock-bajo' && !(stock > 0 && stock <= minimo))
+        return false
+      if (statusFilter === 'agotado' && stock !== 0) return false
+
       if (!term) return true
 
       const productName = variant.producto?.nombre?.toLowerCase() || ''
@@ -191,7 +244,7 @@ export function VariantsTable({ onSuccess, onError }: Props) {
 
       return sortDirection === 'asc' ? comparison : -comparison
     })
-  }, [variants, search, sortField, sortDirection])
+  }, [variants, search, sortField, sortDirection, statusFilter])
 
   const totalPages = Math.ceil(visibleVariants.length / ITEMS_PER_PAGE)
 
@@ -340,6 +393,9 @@ export function VariantsTable({ onSuccess, onError }: Props) {
                   </th>
 
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Caducidad
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Estado
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -387,6 +443,12 @@ export function VariantsTable({ onSuccess, onError }: Props) {
 
                       <td className="px-6 py-5 text-sm font-semibold text-gray-900">
                         {stockActual}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <CaducidadCell
+                          fechaCaducidad={variant.fechaCaducidad}
+                        />
                       </td>
 
                       <td className="px-6 py-5">
