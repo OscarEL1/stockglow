@@ -34,6 +34,14 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
 
       const totalVariants = variants.length
 
+      const disponibles = variants.filter(
+        (v) => v.stockActual > v.stockMinimo
+      ).length
+      const stockBajo = variants.filter(
+        (v) => v.stockActual > 0 && v.stockActual <= v.stockMinimo
+      ).length
+      const agotados = variants.filter((v) => v.stockActual === 0).length
+
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
@@ -55,6 +63,9 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           totalValue,
           totalAlerts,
           totalVentasHoy,
+          disponibles,
+          stockBajo,
+          agotados,
         })
       )
     }

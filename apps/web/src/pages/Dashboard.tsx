@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useOrganization } from '@clerk/clerk-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Layout } from '../components/Layout'
@@ -16,9 +17,12 @@ import {
   AlertTriangle,
   RefreshCcw,
   Bell,
+  CheckCircle2,
+  PackageX,
 } from 'lucide-react'
 
 export function Dashboard() {
+  const navigate = useNavigate()
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
   useStockWebSocket(organization?.id ?? null, queryClient)
@@ -216,6 +220,68 @@ export function Dashboard() {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Inventory status summary cards */}
+        {!isLoading && !isError && summary && (
+          <div className="grid gap-6 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => navigate('/inventory?status=disponible')}
+              className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-green-100 bg-gradient-to-br from-green-50/50 to-white p-6 text-center shadow-sm transition hover:shadow-md"
+            >
+              <div className="mb-3 rounded-xl bg-green-100/60 p-3 text-green-600">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-600">
+                Disponibles
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                {summary.disponibles}
+              </p>
+              <p className="mt-3 text-xs text-[#7A7480]">
+                Variantes con stock saludable
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/inventory?status=stock-bajo')}
+              className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-yellow-100 bg-gradient-to-br from-yellow-50/50 to-white p-6 text-center shadow-sm transition hover:shadow-md"
+            >
+              <div className="mb-3 rounded-xl bg-yellow-100/60 p-3 text-yellow-700">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-yellow-700">
+                Stock bajo
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                {summary.stockBajo}
+              </p>
+              <p className="mt-3 text-xs text-[#7A7480]">
+                Variantes por debajo del mínimo
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/inventory?status=agotado')}
+              className="relative flex flex-col items-center overflow-hidden rounded-2xl border border-red-100 bg-gradient-to-br from-red-50/50 to-white p-6 text-center shadow-sm transition hover:shadow-md"
+            >
+              <div className="mb-3 rounded-xl bg-red-100/60 p-3 text-red-600">
+                <PackageX className="h-6 w-6" />
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-red-600">
+                Agotados
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                {summary.agotados}
+              </p>
+              <p className="mt-3 text-xs text-[#7A7480]">
+                Variantes sin unidades disponibles
+              </p>
+            </button>
           </div>
         )}
 
