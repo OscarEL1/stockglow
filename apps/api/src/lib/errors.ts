@@ -27,6 +27,12 @@ export const Errors = {
       'El SKU ya existe para este tenant',
       409
     ),
+  CATEGORY_ALREADY_EXISTS: () =>
+    new AppError(
+      'CATEGORY_ALREADY_EXISTS',
+      'La categoría ya existe para este tenant',
+      409
+    ),
 
   // Ventas
   INSUFFICIENT_STOCK: () =>

@@ -20,8 +20,21 @@ model Tenant {
   productos        Producto[]
   ventas           Venta[]
   alertas          Alerta[]
+  categorias       Categoria[]
 
   @@map("tenants")
+}
+
+model Categoria {
+  id        String   @id @default(cuid())
+  tenantId  String   @map("tenant_id")
+  nombre    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, nombre])
+  @@map("categorias")
 }
 
 model Usuario {
