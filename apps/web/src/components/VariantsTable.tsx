@@ -1,12 +1,40 @@
 import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
 import { useCategories } from '../hooks/useCategories'
-import { History, Pencil, Trash2, PackagePlus } from 'lucide-react'
+import {
+  History,
+  Pencil,
+  Trash2,
+  PackagePlus,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
 import { AdjustStockModal } from './AdjustStockModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
+type SortField = 'name' | 'price' | 'stock'
+type SortDirection = 'asc' | 'desc'
+
+interface SortIconProps {
+  field: SortField
+  sortField: SortField | null
+  sortDirection: SortDirection
+}
+
+function SortIcon({ field, sortField, sortDirection }: SortIconProps) {
+  if (sortField !== field) {
+    return <ArrowUpDown className="h-4 w-4 text-gray-400" />
+  }
+
+  return sortDirection === 'asc' ? (
+    <ChevronUp className="h-4 w-4 text-pink-600" />
+  ) : (
+    <ChevronDown className="h-4 w-4 text-pink-600" />
+  )
+}
 
 function getStockStatus(stock: number, minimo: number): StockStatus {
   if (stock === 0) return 'out_of_stock'
@@ -83,6 +111,8 @@ interface Props {
 export function VariantsTable({ onSuccess, onError }: Props) {
   const [search, setSearch] = useState('')
   const [categoria, setCategoria] = useState('Todas')
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [stockVariant, setStockVariant] = useState<Variant | null>(null)
 
@@ -98,12 +128,24 @@ export function VariantsTable({ onSuccess, onError }: Props) {
     name: string
   } | null>(null)
 
-  const filteredVariants = useMemo(() => {
+  function handleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDirection((currentDirection) =>
+        currentDirection === 'asc' ? 'desc' : 'asc'
+      )
+      return
+    }
+
+    setSortField(field)
+    setSortDirection('asc')
+  }
+
+  const visibleVariants = useMemo(() => {
     const term = search.trim().toLowerCase()
 
-    if (!term) return variants
+    const filtered = variants.filter((variant) => {
+      if (!term) return true
 
-    return variants.filter((variant) => {
       const productName = variant.producto?.nombre?.toLowerCase() || ''
       const brand = variant.producto?.marca?.toLowerCase() || ''
       const variantName = variant.nombreVariante?.toLowerCase() || ''
@@ -116,7 +158,37 @@ export function VariantsTable({ onSuccess, onError }: Props) {
         sku.includes(term)
       )
     })
-  }, [variants, search])
+
+    if (!sortField) {
+      return filtered
+    }
+
+    return [...filtered].sort((first, second) => {
+      let comparison = 0
+
+      if (sortField === 'name') {
+        const firstName =
+          `${first.producto?.nombre ?? ''} ${first.nombreVariante ?? ''}`.trim()
+
+        const secondName =
+          `${second.producto?.nombre ?? ''} ${second.nombreVariante ?? ''}`.trim()
+
+        comparison = firstName.localeCompare(secondName, 'es', {
+          sensitivity: 'base',
+        })
+      }
+
+      if (sortField === 'price') {
+        comparison = Number(first.precioVenta) - Number(second.precioVenta)
+      }
+
+      if (sortField === 'stock') {
+        comparison = Number(first.stockActual) - Number(second.stockActual)
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }, [variants, search, sortField, sortDirection])
 
   if (isLoading) {
     return <LoadingState />
@@ -156,13 +228,13 @@ export function VariantsTable({ onSuccess, onError }: Props) {
         </div>
 
         <div className="text-sm text-gray-500">
-          {filteredVariants.length} variante
-          {filteredVariants.length !== 1 ? 's' : ''} encontrada
-          {filteredVariants.length !== 1 ? 's' : ''}
+          {visibleVariants.length} variante
+          {visibleVariants.length !== 1 ? 's' : ''} encontrada
+          {visibleVariants.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {filteredVariants.length === 0 ? (
+      {visibleVariants.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
           No se encontraron variantes con esa búsqueda.
         </div>
@@ -172,21 +244,85 @@ export function VariantsTable({ onSuccess, onError }: Props) {
             <table className="min-w-full border-collapse">
               <thead className="bg-pink-50/70">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Producto
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'name'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('name')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Producto
+                      <SortIcon
+                        field="name"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
                   </th>
+
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Variante
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     SKU
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Precio
+
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'price'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('price')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Precio
+                      <SortIcon
+                        field="price"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Stock
+
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'stock'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('stock')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Stock
+                      <SortIcon
+                        field="stock"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
                   </th>
+
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Estado
                   </th>
@@ -197,7 +333,7 @@ export function VariantsTable({ onSuccess, onError }: Props) {
               </thead>
 
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredVariants.map((variant) => {
+                {visibleVariants.map((variant) => {
                   const stockActual = Number(variant.stockActual)
                   const stockMinimo = Number(variant.stockMinimo)
                   const precioVenta = Number(variant.precioVenta)
