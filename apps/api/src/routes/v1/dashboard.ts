@@ -45,7 +45,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         },
         _sum: { total: true },
       })
-      
+
       const totalVentasHoy = Number(ventasQuery._sum.total || 0)
 
       return reply.send(
@@ -57,6 +57,54 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           totalVentasHoy,
         })
       )
+    }
+  )
+
+  // GET /api/v1/dashboard/category-distribution
+  fastify.get(
+    '/category-distribution',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const variants = await prisma.varianteProducto.findMany({
+        where: { tenantId: request.tenantId },
+        select: {
+          stockActual: true,
+          precioVenta: true,
+          producto: {
+            select: { categoria: true },
+          },
+        },
+      })
+
+      const categoryMap = new Map<
+        string,
+        { totalValue: number; totalVariants: number }
+      >()
+
+      for (const variant of variants) {
+        const categoria = variant.producto.categoria || 'Sin categoría'
+        const valor = variant.stockActual * Number(variant.precioVenta)
+        const existing = categoryMap.get(categoria) ?? {
+          totalValue: 0,
+          totalVariants: 0,
+        }
+        categoryMap.set(categoria, {
+          totalValue: existing.totalValue + valor,
+          totalVariants: existing.totalVariants + 1,
+        })
+      }
+
+      const distribution = Array.from(categoryMap.entries()).map(
+        ([categoria, data]) => ({
+          categoria,
+          totalValue: Math.round(data.totalValue * 100) / 100,
+          totalVariants: data.totalVariants,
+        })
+      )
+
+      return reply.send(successResponse(distribution))
     }
   )
 }

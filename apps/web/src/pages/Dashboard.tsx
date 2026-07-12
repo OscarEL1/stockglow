@@ -9,6 +9,7 @@ import { useAlerts } from '../hooks/useAlerts'
 import { useStockWebSocket } from '../hooks/useStockWebSocket'
 import { SalesChart } from '../components/SalesChart'
 import { TopProductsList } from '../components/TopProductsList'
+import { CategoryPieChart } from '../components/CategoryPieChart'
 import {
   Package,
   DollarSign,
@@ -232,6 +233,9 @@ export function Dashboard() {
             />
           </div>
         </div>
+
+        {/* Category distribution pie chart */}
+        <CategoryPieChart />
       </div>
 
       <AlertsPanel
