@@ -7,22 +7,31 @@ export interface OnboardingPayload {
   nombre?: string
   marca?: string
   categoria?: string
-  descripcion?: string
   productoId?: string
   sku?: string
   nombreVariante?: string
   precioVenta?: number
-  stockInicial?: number
+  stockActual?: number
+}
+
+export interface OnboardingResponse {
+  success: boolean
+  data: {
+    step: number
+    producto?: { id: string }
+    variante?: { id: string }
+  }
 }
 
 export function useOnboarding(getToken: () => Promise<string | null>) {
   return useMutation({
     mutationFn: async (data: OnboardingPayload) => {
-      // aquí usamos fetchWithAuth en lugar de api
-      return await fetchWithAuth(getToken, '/api/v1/onboarding', {
+      const response = await fetchWithAuth(getToken, '/api/v1/onboarding', {
         method: 'POST',
         body: JSON.stringify(data),
       })
+
+      return response as OnboardingResponse
     },
   })
 }
