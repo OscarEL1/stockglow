@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
 import { useCategories } from '../hooks/useCategories'
-import { History, Pencil, Trash2 } from 'lucide-react'
+import { History, Pencil, Trash2, PackagePlus } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
+import { AdjustStockModal } from './AdjustStockModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 
@@ -83,6 +84,7 @@ export function VariantsTable({ onSuccess, onError }: Props) {
   const [search, setSearch] = useState('')
   const [categoria, setCategoria] = useState('Todas')
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
+  const [stockVariant, setStockVariant] = useState<Variant | null>(null)
 
   const { data: categories = [] } = useCategories()
   const {
@@ -252,6 +254,16 @@ export function VariantsTable({ onSuccess, onError }: Props) {
 
                           <button
                             type="button"
+                            onClick={() => setStockVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            title="Ajustar stock"
+                            aria-label={`Ajustar stock de ${variant.nombreVariante}`}
+                          >
+                            <PackagePlus className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() =>
                               setHistoryVariant({
                                 id: variant.id,
@@ -285,6 +297,16 @@ export function VariantsTable({ onSuccess, onError }: Props) {
             </table>
           </div>
         </div>
+      )}
+
+      {stockVariant && (
+        <AdjustStockModal
+          key={stockVariant.id}
+          variant={stockVariant}
+          onClose={() => setStockVariant(null)}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
       )}
 
       {selectedVariant && (
