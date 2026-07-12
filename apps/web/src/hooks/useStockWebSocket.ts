@@ -5,7 +5,10 @@ import type { QueryClient } from '@tanstack/react-query'
 const MAX_RETRIES = 5
 const RETRY_DELAY_MS = 3000
 
-export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
+export function useStockWebSocket(
+  tenantId: string | null,
+  queryClient: QueryClient
+) {
   const { getToken } = useAuth()
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -24,9 +27,12 @@ export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
           const token = await getToken()
           if (!token || cancelled) return
 
-          const apiBase = import.meta.env.VITE_API_URL as string
-          const wsUrl = `${apiBase.replace(/^http/, 'ws')}/api/v1/ws/${tenantId}?token=${token}`
-          const ws = new WebSocket(wsUrl)
+          const wsBase = (import.meta.env.VITE_API_URL as string)
+            .replace('https://', 'wss://')
+            .replace('http://', 'ws://')
+          const url = new URL(`${wsBase}/api/v1/ws/${tenantId}`)
+          url.searchParams.set('token', token)
+          const ws = new WebSocket(url.toString())
           wsRef.current = ws
 
           ws.onmessage = (event) => {
@@ -37,6 +43,10 @@ export function useStockWebSocket(tenantId: string, queryClient: QueryClient) {
               }
               if (msg.event === 'stock:update') {
                 queryClient.invalidateQueries({ queryKey: ['variants'] })
+                queryClient.invalidateQueries({ queryKey: ['alerts'] })
+                queryClient.invalidateQueries({
+                  queryKey: ['dashboard-summary'],
+                })
               }
             } catch {
               // ignore malformed messages

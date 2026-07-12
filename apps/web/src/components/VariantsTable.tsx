@@ -1,7 +1,85 @@
 import { useMemo, useState } from 'react'
-import { useVariants } from '../hooks/useVariants'
+import { useVariants, type Variant } from '../hooks/useVariants'
+import { useCategories } from '../hooks/useCategories'
+import {
+  History,
+  Pencil,
+  Trash2,
+  PackagePlus,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
+  AlertTriangle,
+} from 'lucide-react'
+import { VariantHistoryModal } from './VariantHistoryModal'
+import { EditVariantModal } from './EditVariantModal'
+import { AdjustStockModal } from './AdjustStockModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
+type SortField = 'name' | 'price' | 'stock'
+type SortDirection = 'asc' | 'desc'
+const ITEMS_PER_PAGE = 20
+const DIAS_ALERTA_CADUCIDAD = 30
+
+function CaducidadCell({ fechaCaducidad }: { fechaCaducidad: string | null }) {
+  if (!fechaCaducidad) {
+    return null
+  }
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const caducidad = new Date(fechaCaducidad)
+  caducidad.setHours(0, 0, 0, 0)
+
+  const diasRestantes = Math.floor(
+    (caducidad.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  const fechaFormateada = caducidad.toLocaleDateString('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  if (diasRestantes < 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
+        <AlertTriangle className="h-4 w-4 text-red-600" />
+        Caducado
+      </span>
+    )
+  }
+
+  if (diasRestantes <= DIAS_ALERTA_CADUCIDAD) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-500">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        {fechaFormateada}
+      </span>
+    )
+  }
+
+  return <span className="text-sm text-gray-500">{fechaFormateada}</span>
+}
+
+interface SortIconProps {
+  field: SortField
+  sortField: SortField | null
+  sortDirection: SortDirection
+}
+
+function SortIcon({ field, sortField, sortDirection }: SortIconProps) {
+  if (sortField !== field) {
+    return <ArrowUpDown className="h-4 w-4 text-gray-400" />
+  }
+
+  return sortDirection === 'asc' ? (
+    <ChevronUp className="h-4 w-4 text-pink-600" />
+  ) : (
+    <ChevronDown className="h-4 w-4 text-pink-600" />
+  )
+}
 
 function getStockStatus(stock: number, minimo: number): StockStatus {
   if (stock === 0) return 'out_of_stock'
@@ -70,16 +148,60 @@ function EmptyState() {
   )
 }
 
-export function VariantsTable() {
-  const { data: variants = [], isLoading, isError, error } = useVariants()
-  const [search, setSearch] = useState('')
+interface Props {
+  statusFilter?: string | null
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}
 
-  const filteredVariants = useMemo(() => {
+export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
+  const [search, setSearch] = useState('')
+  const [categoria, setCategoria] = useState('Todas')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
+  const [stockVariant, setStockVariant] = useState<Variant | null>(null)
+
+  const { data: categories = [] } = useCategories()
+  const {
+    data: variants = [],
+    isLoading,
+    isError,
+    error,
+  } = useVariants(categoria)
+  const [historyVariant, setHistoryVariant] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+
+  function handleSort(field: SortField) {
+    setCurrentPage(1)
+    if (sortField === field) {
+      setSortDirection((currentDirection) =>
+        currentDirection === 'asc' ? 'desc' : 'asc'
+      )
+      return
+    }
+
+    setSortField(field)
+    setSortDirection('asc')
+  }
+
+  const visibleVariants = useMemo(() => {
     const term = search.trim().toLowerCase()
 
-    if (!term) return variants
+    const filtered = variants.filter((variant) => {
+      const stock = Number(variant.stockActual)
+      const minimo = Number(variant.stockMinimo)
 
-    return variants.filter((variant) => {
+      if (statusFilter === 'disponible' && !(stock > minimo)) return false
+      if (statusFilter === 'stock-bajo' && !(stock > 0 && stock <= minimo))
+        return false
+      if (statusFilter === 'agotado' && stock !== 0) return false
+
+      if (!term) return true
+
       const productName = variant.producto?.nombre?.toLowerCase() || ''
       const brand = variant.producto?.marca?.toLowerCase() || ''
       const variantName = variant.nombreVariante?.toLowerCase() || ''
@@ -92,7 +214,44 @@ export function VariantsTable() {
         sku.includes(term)
       )
     })
-  }, [variants, search])
+
+    if (!sortField) {
+      return filtered
+    }
+
+    return [...filtered].sort((first, second) => {
+      let comparison = 0
+
+      if (sortField === 'name') {
+        const firstName =
+          `${first.producto?.nombre ?? ''} ${first.nombreVariante ?? ''}`.trim()
+
+        const secondName =
+          `${second.producto?.nombre ?? ''} ${second.nombreVariante ?? ''}`.trim()
+
+        comparison = firstName.localeCompare(secondName, 'es', {
+          sensitivity: 'base',
+        })
+      }
+
+      if (sortField === 'price') {
+        comparison = Number(first.precioVenta) - Number(second.precioVenta)
+      }
+
+      if (sortField === 'stock') {
+        comparison = Number(first.stockActual) - Number(second.stockActual)
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }, [variants, search, sortField, sortDirection, statusFilter])
+
+  const totalPages = Math.ceil(visibleVariants.length / ITEMS_PER_PAGE)
+
+  const paginatedVariants = visibleVariants.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
 
   if (isLoading) {
     return <LoadingState />
@@ -109,22 +268,42 @@ export function VariantsTable() {
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
-        <input
-          type="text"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar producto, SKU o tono..."
-          className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:max-w-sm"
-        />
+        <div className="flex w-full flex-col gap-3 md:max-w-xl md:flex-row md:items-center">
+          <input
+            type="text"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setCurrentPage(1)
+            }}
+            placeholder="Buscar producto, SKU o tono..."
+            className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+          />
+          <select
+            value={categoria}
+            onChange={(e) => {
+              setCategoria(e.target.value)
+              setCurrentPage(1)
+            }}
+            className="w-full rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100 md:w-48"
+          >
+            <option value="Todas">Todas las categorías</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="text-sm text-gray-500">
-          {filteredVariants.length} variante
-          {filteredVariants.length !== 1 ? 's' : ''} encontrada
-          {filteredVariants.length !== 1 ? 's' : ''}
+          {visibleVariants.length} variante
+          {visibleVariants.length !== 1 ? 's' : ''} encontrada
+          {visibleVariants.length !== 1 ? 's' : ''}
         </div>
       </div>
 
-      {filteredVariants.length === 0 ? (
+      {visibleVariants.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
           No se encontraron variantes con esa búsqueda.
         </div>
@@ -134,29 +313,99 @@ export function VariantsTable() {
             <table className="min-w-full border-collapse">
               <thead className="bg-pink-50/70">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Producto
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'name'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('name')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Producto
+                      <SortIcon
+                        field="name"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
                   </th>
+
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Variante
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     SKU
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Precio
+
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'price'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('price')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Precio
+                      <SortIcon
+                        field="price"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
                   </th>
+
+                  <th
+                    className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    aria-sort={
+                      sortField === 'stock'
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSort('stock')}
+                      className="inline-flex items-center gap-2 transition hover:text-pink-600"
+                    >
+                      Stock
+                      <SortIcon
+                        field="stock"
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                      />
+                    </button>
+                  </th>
+
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Stock
+                    Caducidad
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Estado
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Acciones
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredVariants.map((variant) => {
+                {paginatedVariants.map((variant) => {
                   const stockActual = Number(variant.stockActual)
                   const stockMinimo = Number(variant.stockMinimo)
                   const precioVenta = Number(variant.precioVenta)
@@ -197,7 +446,63 @@ export function VariantsTable() {
                       </td>
 
                       <td className="px-6 py-5">
+                        <CaducidadCell
+                          fechaCaducidad={variant.fechaCaducidad}
+                        />
+                      </td>
+
+                      <td className="px-6 py-5">
                         <StockBadge stock={stockActual} minimo={stockMinimo} />
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-pink-200 bg-white text-pink-600 shadow-sm transition hover:border-pink-400 hover:bg-pink-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                            title="Editar variante"
+                            aria-label={`Editar ${variant.nombreVariante}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setStockVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            title="Ajustar stock"
+                            aria-label={`Ajustar stock de ${variant.nombreVariante}`}
+                          >
+                            <PackagePlus className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setHistoryVariant({
+                                id: variant.id,
+                                name: `${variant.producto.nombre} - ${variant.nombreVariante}`,
+                              })
+                            }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                            title="Ver historial de movimientos"
+                            aria-label={`Ver historial de ${variant.nombreVariante}`}
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              console.log('Eliminar variante:', variant.id)
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            title="Eliminar variante"
+                            aria-label={`Eliminar ${variant.nombreVariante}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -207,6 +512,84 @@ export function VariantsTable() {
           </div>
         </div>
       )}
+
+      {stockVariant && (
+        <AdjustStockModal
+          key={stockVariant.id}
+          variant={stockVariant}
+          onClose={() => setStockVariant(null)}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      )}
+
+      {visibleVariants.length > ITEMS_PER_PAGE && (
+        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Página {currentPage} de {totalPages}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+
+            {Array.from({ length: totalPages }, (_, index) => {
+              const pageNumber = index + 1
+              const isActive = currentPage === pageNumber
+
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNumber)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`h-10 min-w-10 rounded-lg border px-3 text-sm font-semibold transition ${
+                    isActive
+                      ? 'border-[#E85D8C] bg-[#E85D8C] text-white'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-pink-300 hover:bg-pink-50'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              )
+            })}
+
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedVariant && (
+        <EditVariantModal
+          key={selectedVariant.id}
+          variant={selectedVariant}
+          onClose={() => setSelectedVariant(null)}
+          onSuccess={onSuccess}
+          onError={onError}
+        />
+      )}
+
+      <VariantHistoryModal
+        isOpen={!!historyVariant}
+        onClose={() => setHistoryVariant(null)}
+        variantId={historyVariant?.id || null}
+        variantName={historyVariant?.name}
+      />
     </section>
   )
 }

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import type { Decimal } from '@prisma/client/runtime/library.js'
+import { Prisma } from '@prisma/client' // <-- Importación necesaria para el tipado del cliente de transacción
 import { prisma } from '../../lib/prisma.js'
 import { acquireLock, releaseLock, lockKey } from '../../lib/redis.js'
 import { emitToTenant } from '../../plugins/websocket.js'
@@ -34,9 +35,13 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 select: {
                   nombreVariante: true,
                   sku: true,
+                  imagenUrl: true,
                 },
               },
             },
+          },
+          usuario: {
+            select: { nombre: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -125,56 +130,58 @@ export async function saleRoutes(fastify: FastifyInstance) {
           })
         }
 
-        // 4. Ejecutar transaccion atomica
-        const venta = await prisma.$transaction(async (tx) => {
-          const nuevaVenta = await tx.venta.create({
-            data: {
-              tenantId,
-              usuarioId: internalUserId,
-              total,
-              estado: 'COMPLETADA',
-              detalles: {
-                create: detalles.map((d) => ({
-                  varianteId: d.varianteId,
-                  cantidad: d.cantidad,
-                  precioUnitario: d.precioUnitario,
-                })),
-              },
-            },
-            include: { detalles: true },
-          })
-
-          for (const d of detalles) {
-            await tx.varianteProducto.update({
-              where: { id: d.varianteId },
-              data: { stockActual: d.newStock },
-            })
-
-            await tx.movimientoStock.create({
+        // 4. Ejecutar transaccion atomica con tipado explícito 'tx: Prisma.TransactionClient'
+        const venta = await prisma.$transaction(
+          async (tx: Prisma.TransactionClient) => {
+            const nuevaVenta = await tx.venta.create({
               data: {
                 tenantId,
-                varianteId: d.varianteId,
                 usuarioId: internalUserId,
-                tipo: 'ENTRADA',
-                cantidad: -d.cantidad,
-                motivo: `Venta #${nuevaVenta.id}`,
+                total,
+                estado: 'COMPLETADA',
+                detalles: {
+                  create: detalles.map((d) => ({
+                    varianteId: d.varianteId,
+                    cantidad: d.cantidad,
+                    precioUnitario: d.precioUnitario,
+                  })),
+                },
               },
+              include: { detalles: true },
             })
 
-            if (d.newStock <= d.stockMinimo) {
-              await tx.alerta.create({
+            for (const d of detalles) {
+              await tx.varianteProducto.update({
+                where: { id: d.varianteId },
+                data: { stockActual: d.newStock },
+              })
+
+              await tx.movimientoStock.create({
                 data: {
                   tenantId,
                   varianteId: d.varianteId,
-                  tipo: 'BAJO_STOCK',
-                  leida: false,
+                  usuarioId: internalUserId,
+                  tipo: 'ENTRADA',
+                  cantidad: -d.cantidad,
+                  motivo: `Venta #${nuevaVenta.id}`,
                 },
               })
-            }
-          }
 
-          return nuevaVenta
-        })
+              if (d.newStock <= d.stockMinimo) {
+                await tx.alerta.create({
+                  data: {
+                    tenantId,
+                    varianteId: d.varianteId,
+                    tipo: 'BAJO_STOCK',
+                    leida: false,
+                  },
+                })
+              }
+            }
+
+            return nuevaVenta
+          }
+        )
 
         // 5. Emitir evento WebSocket al dashboard del dueno
         try {
@@ -201,6 +208,89 @@ export async function saleRoutes(fastify: FastifyInstance) {
           await releaseLock(key)
         }
       }
+    }
+  )
+
+  fastify.patch(
+    '/:id/cancel',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+      const { tenantId, userId } = request
+
+      const usuarioInterno = await prisma.usuario.findFirst({
+        where: { clerkUserId: userId, tenantId },
+        select: { id: true },
+      })
+
+      if (!usuarioInterno) {
+        return reply.status(403).send({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'Usuario no registrado en esta organizacion',
+            statusCode: 403,
+          },
+        })
+      }
+
+      const venta = await prisma.venta.findFirst({
+        where: { id, tenantId },
+        include: { detalles: true },
+      })
+
+      if (!venta) throw Errors.SALE_NOT_FOUND()
+      if (venta.estado === 'CANCELADA') throw Errors.SALE_ALREADY_CANCELLED()
+
+      // Tipado explícito aplicado también aquí para mitigar el segundo error de compilación
+      const ventaActualizada = await prisma.$transaction(
+        async (tx: Prisma.TransactionClient) => {
+          const updated = await tx.venta.update({
+            where: { id },
+            data: { estado: 'CANCELADA' },
+            include: {
+              detalles: {
+                include: {
+                  variante: {
+                    select: {
+                      nombreVariante: true,
+                      sku: true,
+                      imagenUrl: true,
+                    },
+                  },
+                },
+              },
+              usuario: {
+                select: { nombre: true },
+              },
+            },
+          })
+
+          for (const detalle of venta.detalles) {
+            await tx.varianteProducto.update({
+              where: { id: detalle.varianteId },
+              data: { stockActual: { increment: detalle.cantidad } },
+            })
+
+            await tx.movimientoStock.create({
+              data: {
+                tenantId,
+                varianteId: detalle.varianteId,
+                usuarioId: usuarioInterno.id,
+                tipo: 'ENTRADA',
+                cantidad: detalle.cantidad,
+                motivo: `Cancelación de venta #${id}`,
+              },
+            })
+          }
+
+          return updated
+        }
+      )
+
+      return reply.send(successResponse(ventaActualizada))
     }
   )
 }

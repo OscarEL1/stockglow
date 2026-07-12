@@ -20,6 +20,7 @@ export const clerkAuth = fp(async (fastify) => {
         },
       })
     }
+
     request.tenantId = orgId
     request.userId = userId
   })

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(pnpm add *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(git add *)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(echo \"API TSC EXIT: $?\")",
+      "Bash(npx prisma *)",
+      "Bash(echo \"WEB TSC EXIT: $?\")",
+      "Bash(echo \"LINT WEB EXIT: $?\")",
+      "Bash(echo \"TSC EXIT: $?\")",
+      "Bash(echo \"LINT EXIT: $?\")",
+      "Bash(echo \"LINT API EXIT: $?\")"
+    ]
+  }
+}
