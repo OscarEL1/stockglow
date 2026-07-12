@@ -1,20 +1,66 @@
+import { memo } from 'react'
 import { X, Bell, PackageOpen, CalendarClock, CheckCheck } from 'lucide-react'
-import { useAlerts } from '../hooks/useAlerts'
+import { useAlerts, type Alert } from '../hooks/useAlerts'
 
 interface AlertsPanelProps {
   isOpen: boolean
   onClose: () => void
 }
 
+const AlertRow = memo(
+  function AlertRow({ alerta }: { alerta: Alert }) {
+    return (
+      <div
+        className="flex gap-3 rounded-xl border border-red-100 bg-red-50/50 p-4"
+        style={{
+          contentVisibility: 'auto',
+          containIntrinsicSize: '0 96px',
+        }}
+      >
+        <div className="mt-0.5 flex-shrink-0">
+          {alerta.tipo === 'BAJO_STOCK' ? (
+            <PackageOpen className="h-5 w-5 text-red-500" />
+          ) : (
+            <CalendarClock className="h-5 w-5 text-orange-500" />
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-900">
+            {alerta.tipo === 'BAJO_STOCK'
+              ? 'Stock bajo detectado'
+              : 'Caducidad próxima'}
+          </p>
+          <p className="mt-1 text-xs text-gray-600">
+            La variante{' '}
+            <span className="font-semibold text-gray-900">
+              {alerta.variante.nombreVariante}
+            </span>{' '}
+            ({alerta.variante.sku}) del producto{' '}
+            <span className="font-semibold">
+              {alerta.variante.producto.nombre}
+            </span>{' '}
+            requiere atención.
+          </p>
+          <p className="mt-2 text-[10px] text-gray-400">
+            {new Date(alerta.createdAt).toLocaleString()}
+          </p>
+        </div>
+      </div>
+    )
+  },
+  (prev, next) =>
+    prev.alerta.id === next.alerta.id && prev.alerta.leida === next.alerta.leida
+)
+
 export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
-  const { data: alerts = [], isLoading, markAsRead } = useAlerts()
+  const { data: alerts = [], isLoading, markAsRead } = useAlerts(isOpen)
 
   if (!isOpen) return null
 
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
         onClick={onClose}
       />
 
@@ -60,39 +106,7 @@ export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
             ) : (
               <div className="space-y-3">
                 {alerts.map((alerta) => (
-                  <div
-                    key={alerta.id}
-                    className="flex gap-3 rounded-xl border border-red-100 bg-red-50/50 p-4"
-                  >
-                    <div className="mt-0.5 flex-shrink-0">
-                      {alerta.tipo === 'BAJO_STOCK' ? (
-                        <PackageOpen className="h-5 w-5 text-red-500" />
-                      ) : (
-                        <CalendarClock className="h-5 w-5 text-orange-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {alerta.tipo === 'BAJO_STOCK'
-                          ? 'Stock bajo detectado'
-                          : 'Caducidad próxima'}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-600">
-                        La variante{' '}
-                        <span className="font-semibold text-gray-900">
-                          {alerta.variante.nombreVariante}
-                        </span>{' '}
-                        ({alerta.variante.sku}) del producto{' '}
-                        <span className="font-semibold">
-                          {alerta.variante.producto.nombre}
-                        </span>{' '}
-                        requiere atención.
-                      </p>
-                      <p className="mt-2 text-[10px] text-gray-400">
-                        {new Date(alerta.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
+                  <AlertRow key={alerta.id} alerta={alerta} />
                 ))}
               </div>
             )}
