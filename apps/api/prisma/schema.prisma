@@ -16,6 +16,8 @@ model Tenant {
   createdAt        DateTime  @default(now()) @map("created_at")
   wizardStep       Int       @default(1)
 
+  wizardStep       Int       @default(1) // nuevo campo
+
   usuarios         Usuario[]
   productos        Producto[]
   ventas           Venta[]

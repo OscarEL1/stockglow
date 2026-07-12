@@ -8,6 +8,9 @@ export interface DashboardSummary {
   totalValue: number
   totalAlerts: number
   totalVentasHoy: number
+  disponibles: number
+  stockBajo: number
+  agotados: number
 }
 
 export function useDashboardSummary() {
