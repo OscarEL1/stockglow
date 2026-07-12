@@ -19,13 +19,17 @@ export interface Variant {
   }
 }
 
-export function useVariants() {
+export function useVariants(categoria?: string) {
   const { getToken } = useAuth()
 
   return useQuery({
-    queryKey: ['variants'],
+    queryKey: ['variants', categoria],
     queryFn: async () => {
-      const res = await fetchWithAuth(getToken, '/api/v1/inventory/variants')
+      const url =
+        categoria && categoria !== 'Todas'
+          ? `/api/v1/inventory/variants?categoria=${encodeURIComponent(categoria)}`
+          : '/api/v1/inventory/variants'
+      const res = await fetchWithAuth(getToken, url)
       return res.data as Variant[]
     },
   })
