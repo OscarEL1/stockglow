@@ -223,7 +223,9 @@ function SaleDetailModal({
             )}
             {sale.estado === 'COMPLETADA' && (
               <button
-                onClick={() => generateReceiptPDF(sale, organization?.name || 'Tienda')}
+                onClick={() =>
+                  generateReceiptPDF(sale, organization?.name || 'Tienda')
+                }
                 className="rounded-xl bg-[#2D2A32] px-6 py-2 text-sm font-bold text-white hover:bg-black"
               >
                 Imprimir ticket
@@ -573,6 +575,9 @@ export function Sales() {
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Estado
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Vendedor
+                      </th>
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Acciones
                       </th>
@@ -596,6 +601,9 @@ export function Sales() {
                           >
                             {sale.estado}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {sale.usuario?.nombre ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
