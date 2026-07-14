@@ -54,12 +54,12 @@ function SaleDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 py-8 backdrop-blur-[1px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sale-detail-title"
     >
-      <div className="w-full max-w-2xl rounded-[28px] bg-white px-8 py-7 shadow-2xl">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[28px] bg-white px-8 py-7 shadow-2xl">
         {/* Header */}
         <div className="mb-5 flex items-start justify-between">
           <div>
@@ -94,6 +94,7 @@ function SaleDetailModal({
               Vendido por:{' '}
               <span className="font-medium text-[#2D2A32]">
                 {sale.usuario.nombre}
+                {sale.usuario.rol && ` (${sale.usuario.rol})`}
               </span>
             </span>
           )}
@@ -107,7 +108,7 @@ function SaleDetailModal({
 
         {/* Tabla de productos */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
-          <table className="min-w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-sm">
             <thead className="bg-pink-50/70">
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
