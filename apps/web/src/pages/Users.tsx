@@ -5,6 +5,7 @@ import { useUpdateMemberRole } from '../hooks/useUpdateMemberRole'
 import { useToast } from '../hooks/useToast'
 import { Toast } from '../components/Toast'
 import { Layout } from '../components/Layout'
+import { InviteMemberModal } from '../components/InviteMemberModal'
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('es-MX', {
@@ -30,15 +31,25 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 export function Users() {
-  const { isLoaded, memberships } = useOrganization({ memberships: true })
+  const { isLoaded, memberships, invitations } = useOrganization({
+    memberships: true,
+    invitations: true,
+  })
   const { user } = useUser()
   const { isAdmin } = useRole()
   const { updateRole } = useUpdateMemberRole()
   const { toast, showToast, hideToast } = useToast()
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
 
-  const isLoading = !isLoaded || (memberships?.isLoading ?? true)
+  const isLoading =
+    !isLoaded ||
+    (memberships?.isLoading ?? true) ||
+    (invitations?.isLoading ?? true)
   const members = memberships?.data ?? []
+  const pendingInvitations = (invitations?.data ?? []).filter(
+    (invitation) => invitation.status === 'pending'
+  )
 
   async function handleRoleChange(
     userId: string,
@@ -61,18 +72,28 @@ export function Users() {
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#2D2A32]">Usuarios</h1>
-        <p className="mt-1 text-[#7A7480]">
-          Administración de personal y roles
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#2D2A32]">Usuarios</h1>
+          <p className="mt-1 text-[#7A7480]">
+            Administración de personal y roles
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="h-11 rounded-2xl bg-[#E85D8C] px-5 text-sm font-bold text-white transition hover:bg-[#D94B7D]"
+          >
+            Invitar
+          </button>
+        )}
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
         </div>
-      ) : members.length === 0 ? (
+      ) : members.length === 0 && pendingInvitations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-pink-200 bg-white p-10 text-center">
           <p className="text-base font-semibold text-gray-900">
             No hay miembros en tu organización
@@ -182,10 +203,49 @@ export function Users() {
                     </tr>
                   )
                 })}
+                {pendingInvitations.map((invitation) => (
+                  <tr
+                    key={invitation.id}
+                    className="transition hover:bg-pink-50/40"
+                  >
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-500">
+                          {invitation.emailAddress[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-400">
+                          Invitación enviada
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-gray-600">
+                      {invitation.emailAddress}
+                    </td>
+                    <td className="px-6 py-5">
+                      <RoleBadge role={invitation.role} />
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                        Pendiente
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-gray-600">
+                      {formatDate(invitation.createdAt)}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         </div>
+      )}
+
+      {showInviteModal && (
+        <InviteMemberModal
+          onClose={() => setShowInviteModal(false)}
+          onInvited={() => invitations?.revalidate?.()}
+          showToast={showToast}
+        />
       )}
 
       {toast.visible && (
