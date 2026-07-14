@@ -10,6 +10,7 @@ import {
   ChevronUp,
   ChevronDown,
   AlertTriangle,
+  ImageIcon,
 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
@@ -313,6 +314,9 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
             <table className="min-w-full border-collapse">
               <thead className="bg-pink-50/70">
                 <tr>
+                  <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Imagen
+                  </th>
                   <th
                     className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
                     aria-sort={
@@ -415,6 +419,19 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                       key={variant.id}
                       className="transition hover:bg-pink-50/40"
                     >
+                      <td className="px-4 py-4">
+                        {variant.imagenUrl ? (
+                          <img
+                            src={variant.imagenUrl}
+                            alt={variant.nombreVariante}
+                            className="h-12 w-12 rounded-xl object-cover border border-[#F1DDE5] shadow-sm"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-[#F1DDE5] bg-pink-50/50">
+                            <ImageIcon className="h-5 w-5 text-[#D9B4C7]" />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-semibold text-gray-900">
                           {variant.producto.nombre}
