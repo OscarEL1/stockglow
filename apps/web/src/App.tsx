@@ -13,7 +13,6 @@ import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
 import { useOnboardingStatus } from './hooks/useOnboardingStatus'
 
-
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
 
@@ -68,7 +67,12 @@ export default function App() {
         path="/login/*"
         element={
           <div className="flex min-h-screen items-center justify-center bg-[#FFF8F9]">
-            <SignIn routing="path" path="/login" />
+            <SignIn
+              routing="path"
+              path="/login"
+              signUpUrl="/register"
+              forceRedirectUrl="/"
+            />
           </div>
         }
       />
