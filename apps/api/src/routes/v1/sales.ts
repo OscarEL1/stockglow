@@ -41,7 +41,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
             },
           },
           usuario: {
-            select: { nombre: true },
+            select: { nombre: true, rol: true },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -150,36 +150,42 @@ export async function saleRoutes(fastify: FastifyInstance) {
               include: { detalles: true },
             })
 
-            for (const d of detalles) {
-              await tx.varianteProducto.update({
-                where: { id: d.varianteId },
-                data: { stockActual: d.newStock },
-              })
+            await Promise.all(
+              detalles.map(async (d) => {
+                await tx.varianteProducto.update({
+                  where: { id: d.varianteId },
+                  data: { stockActual: d.newStock },
+                })
 
-              await tx.movimientoStock.create({
-                data: {
-                  tenantId,
-                  varianteId: d.varianteId,
-                  usuarioId: internalUserId,
-                  tipo: 'ENTRADA',
-                  cantidad: -d.cantidad,
-                  motivo: `Venta #${nuevaVenta.id}`,
-                },
-              })
-
-              if (d.newStock <= d.stockMinimo) {
-                await tx.alerta.create({
+                await tx.movimientoStock.create({
                   data: {
                     tenantId,
                     varianteId: d.varianteId,
-                    tipo: 'BAJO_STOCK',
-                    leida: false,
+                    usuarioId: internalUserId,
+                    tipo: 'ENTRADA',
+                    cantidad: -d.cantidad,
+                    motivo: `Venta #${nuevaVenta.id}`,
                   },
                 })
-              }
-            }
+
+                if (d.newStock <= d.stockMinimo) {
+                  await tx.alerta.create({
+                    data: {
+                      tenantId,
+                      varianteId: d.varianteId,
+                      tipo: 'BAJO_STOCK',
+                      leida: false,
+                    },
+                  })
+                }
+              })
+            )
 
             return nuevaVenta
+          },
+          {
+            maxWait: 10000,
+            timeout: 30000,
           }
         )
 

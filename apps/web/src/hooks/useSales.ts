@@ -16,7 +16,7 @@ export interface Sale {
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'
   createdAt: string
   usuarioId: string
-  usuario?: { nombre: string }
+  usuario?: { nombre: string; rol?: string }
   detalles: SaleDetalle[]
 }
 
