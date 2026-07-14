@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "5.29.0",
+    "@clerk/localizations": "^4.13.2",
     "@tanstack/react-query": "5.80.7",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

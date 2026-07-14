@@ -71,7 +71,6 @@ export default function App() {
               routing="path"
               path="/login"
               signUpUrl="/register"
-              fallbackRedirectUrl="/"
               forceRedirectUrl="/"
             />
           </div>
