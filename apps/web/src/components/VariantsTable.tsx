@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
 import { useCategories } from '../hooks/useCategories'
 import {
+  Eye,
   History,
   Pencil,
   Trash2,
@@ -15,6 +16,7 @@ import {
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
 import { AdjustStockModal } from './AdjustStockModal'
+import { VariantDetailModal } from './VariantDetailModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 type SortField = 'name' | 'price' | 'stock'
@@ -161,6 +163,7 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [detailVariant, setDetailVariant] = useState<Variant | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [stockVariant, setStockVariant] = useState<Variant | null>(null)
 
@@ -485,6 +488,16 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
 
                           <button
                             type="button"
+                            onClick={() => setDetailVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-violet-200 bg-white text-violet-600 shadow-sm transition hover:border-violet-400 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                            title="Ver detalle"
+                            aria-label={`Ver detalle de ${variant.nombreVariante}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => setStockVariant(variant)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                             title="Ajustar stock"
@@ -589,6 +602,14 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
             </button>
           </div>
         </div>
+      )}
+
+      {detailVariant && (
+        <VariantDetailModal
+          key={detailVariant.id}
+          variant={detailVariant}
+          onClose={() => setDetailVariant(null)}
+        />
       )}
 
       {selectedVariant && (
