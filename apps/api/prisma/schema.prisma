@@ -15,6 +15,7 @@ model Tenant {
   planSuscripcion  String    @default("basic") @map("plan_suscripcion") @db.VarChar(20)
   createdAt        DateTime  @default(now()) @map("created_at")
   wizardStep       Int       @default(1)
+  umbralDiasCaducidad Int    @default(30) @map("umbral_dias_caducidad")
 
   usuarios         Usuario[]
   productos        Producto[]

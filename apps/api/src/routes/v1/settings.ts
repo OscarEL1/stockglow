@@ -11,6 +11,12 @@ const updateSettingsSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .optional(),
   logoUrl: z.string().url('URL de logo inválida').nullable().optional(),
+  // 👇 NUEVA VALIDACIÓN: Debe ser un número entero mayor o igual a 1
+  umbralDiasCaducidad: z
+    .number()
+    .int()
+    .min(1, 'El umbral debe ser de al menos 1 día')
+    .optional(),
 })
 
 const createCategorySchema = z.object({
@@ -25,13 +31,20 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const tenant = await prisma.tenant.findUnique({
         where: { id: request.tenantId },
-        select: { nombreTienda: true, logoUrl: true },
+        // 👇 AÑADIDO: Traemos también el umbral guardado
+        select: {
+          nombreTienda: true,
+          logoUrl: true,
+          umbralDiasCaducidad: true,
+        },
       })
 
       return reply.send(
         successResponse({
           nombre: tenant?.nombreTienda ?? '',
           logoUrl: tenant?.logoUrl ?? null,
+          // 👇 AÑADIDO: Si no tiene valor, mandamos 30 por defecto al frontend
+          umbralDiasCaducidad: tenant?.umbralDiasCaducidad ?? 30,
         })
       )
     }
@@ -49,6 +62,10 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         data: {
           ...(input.nombre !== undefined && { nombreTienda: input.nombre }),
           ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
+          // 👇 AÑADIDO: Si viene el campo en el body, lo actualizamos en la DB
+          ...(input.umbralDiasCaducidad !== undefined && {
+            umbralDiasCaducidad: input.umbralDiasCaducidad,
+          }),
         },
       })
 
@@ -56,6 +73,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         successResponse({
           nombre: tenant.nombreTienda,
           logoUrl: tenant.logoUrl,
+          // 👇 AÑADIDO: Retornamos el valor actualizado
+          umbralDiasCaducidad: tenant.umbralDiasCaducidad,
         })
       )
     }

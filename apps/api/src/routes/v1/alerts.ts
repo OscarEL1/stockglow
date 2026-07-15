@@ -2,7 +2,6 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 
-const DIAS_ALERTA_CADUCIDAD = 30
 const MS_POR_DIA = 1000 * 60 * 60 * 24
 
 export async function alertRoutes(fastify: FastifyInstance) {
@@ -18,6 +17,15 @@ export async function alertRoutes(fastify: FastifyInstance) {
       const whereClause = includeRead
         ? { tenantId }
         : { tenantId, leida: false }
+
+      // 1. Buscamos el umbral configurado por la tienda (Tenant)
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { umbralDiasCaducidad: true },
+      })
+
+      // Si por alguna razón no tiene configuración asignada, usamos 30 por defecto
+      const diasAlertaCaducidad = tenant?.umbralDiasCaducidad ?? 30
 
       // Alertas persistidas (hoy: BAJO_STOCK, generadas al confirmar una venta)
       const alertasStock = await prisma.alerta.findMany({
@@ -69,7 +77,8 @@ export async function alertRoutes(fastify: FastifyInstance) {
 
           return { v, fechaCaducidad, diasRestantes }
         })
-        .filter(({ diasRestantes }) => diasRestantes <= DIAS_ALERTA_CADUCIDAD)
+        // 2. Filtramos usando la variable dinámica de días en vez del número 30 fijo
+        .filter(({ diasRestantes }) => diasRestantes <= diasAlertaCaducidad)
         .map(({ v, fechaCaducidad, diasRestantes }) => ({
           id: `auto-caducidad-${v.id}`,
           tipo: 'CADUCIDAD_PROXIMA' as const,
