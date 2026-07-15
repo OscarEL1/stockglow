@@ -184,7 +184,7 @@ export function VariantDetailModal({ variant, onClose }: Props) {
 
   const stockInfo = getStockInfo(stockActual, stockMinimo)
   const expirationInfo = getExpirationInfo(variant.fechaCaducidad)
-  const recentMovements = movements.slice(0, 5)
+  const recentMovements = movements.slice(0, 10)
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
