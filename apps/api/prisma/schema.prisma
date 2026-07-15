@@ -97,6 +97,7 @@ model Venta {
   tenantId   String       @map("tenant_id")
   usuarioId  String       @map("usuario_id")
   total      Decimal      @db.Decimal(10, 2)
+  descuento  Decimal?     @default(0) @db.Decimal(10, 2) @map("descuento")
   estado     EstadoVenta  @default(PENDIENTE)
   createdAt  DateTime     @default(now()) @map("created_at")
 

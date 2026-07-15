@@ -51,6 +51,12 @@ export const Errors = {
     new AppError('SALE_NOT_FOUND', 'Venta no encontrada', 404),
   SALE_ALREADY_CANCELLED: () =>
     new AppError('SALE_ALREADY_CANCELLED', 'La venta ya fue cancelada', 409),
+  DISCOUNT_EXCEEDS_SUBTOTAL: () =>
+    new AppError(
+      'DISCOUNT_EXCEEDS_SUBTOTAL',
+      'El descuento no puede superar el subtotal de la venta',
+      422
+    ),
 
   // General
   NOT_FOUND: (resource: string) =>
