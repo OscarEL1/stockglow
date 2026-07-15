@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOrganization, useUser } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
 import { useUpdateMemberRole } from '../hooks/useUpdateMemberRole'
+import { useRemoveMember } from '../hooks/useRemoveMember'
 import { useToast } from '../hooks/useToast'
 import { Toast } from '../components/Toast'
 import { Layout } from '../components/Layout'
@@ -39,8 +40,13 @@ export function Users() {
   const { isAdmin } = useRole()
   const { updateRole } = useUpdateMemberRole()
   const { toast, showToast, hideToast } = useToast()
+  const { removeMember, isPending: isRemoving } = useRemoveMember(showToast)
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<{
+    userId: string
+    name: string
+  } | null>(null)
 
   const isLoading =
     !isLoaded ||
@@ -67,6 +73,16 @@ export function Users() {
       )
     } finally {
       setPendingUserId(null)
+    }
+  }
+
+  async function handleConfirmRemove() {
+    if (!memberToRemove) return
+    try {
+      await removeMember(memberToRemove.userId)
+      setMemberToRemove(null)
+    } catch {
+      // El hook ya mostró el toast de error
     }
   }
 
@@ -120,6 +136,11 @@ export function Users() {
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Fecha de ingreso
                   </th>
+                  {isAdmin && (
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Acciones
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -200,6 +221,22 @@ export function Users() {
                       <td className="px-6 py-5 text-sm text-gray-600">
                         {formatDate(member.createdAt)}
                       </td>
+                      {isAdmin && (
+                        <td className="px-6 py-5">
+                          <button
+                            onClick={() =>
+                              setMemberToRemove({
+                                userId: memberId,
+                                name: displayName,
+                              })
+                            }
+                            disabled={isCurrentUser}
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -232,6 +269,7 @@ export function Users() {
                     <td className="px-6 py-5 text-sm text-gray-600">
                       {formatDate(invitation.createdAt)}
                     </td>
+                    {isAdmin && <td className="px-6 py-5" />}
                   </tr>
                 ))}
               </tbody>
@@ -246,6 +284,46 @@ export function Users() {
           onInvited={() => invitations?.revalidate?.()}
           showToast={showToast}
         />
+      )}
+
+      {memberToRemove && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-member-title"
+        >
+          <div className="w-full max-w-[480px] rounded-[28px] bg-white px-10 py-9 shadow-2xl">
+            <h2
+              id="remove-member-title"
+              className="text-xl font-extrabold leading-tight text-[#2D2A32]"
+            >
+              Eliminar miembro
+            </h2>
+            <p className="mt-4 text-sm text-[#7A7480]">
+              ¿Estás seguro de que deseas eliminar a {memberToRemove.name} del
+              equipo? Esta acción revocará su acceso al sistema.
+            </p>
+            <div className="mt-8 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                disabled={isRemoving}
+                className="h-12 min-w-[130px] rounded-2xl bg-gray-200 px-6 text-sm font-bold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemove}
+                disabled={isRemoving}
+                className="h-12 min-w-[130px] rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isRemoving ? 'Eliminando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast.visible && (
