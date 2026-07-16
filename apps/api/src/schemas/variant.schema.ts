@@ -7,7 +7,7 @@ export const createVariantSchema = z.object({
   imagenUrl: z.string().url().nullable().optional(),
   precioVenta: z.number().positive(),
   stockActual: z.number().int().min(0).default(0),
-  stockMinimo: z.number().int().min(0).default(5),
+  stockMinimo: z.number().int().min(0).optional(),
   fechaCaducidad: z.string().date().nullable().optional(),
 })
 

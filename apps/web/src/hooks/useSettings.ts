@@ -6,12 +6,14 @@ export interface StoreSettings {
   nombre: string
   logoUrl: string | null
   umbralDiasCaducidad: number
+  stockMinimoGlobal: number
 }
 
 export interface UpdateSettingsData {
   nombre?: string
   logoUrl?: string | null
   umbralDiasCaducidad?: number
+  stockMinimoGlobal?: number
 }
 
 export function useSettings() {
