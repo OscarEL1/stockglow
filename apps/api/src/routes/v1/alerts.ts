@@ -77,27 +77,33 @@ export async function alertRoutes(fastify: FastifyInstance) {
 
           return { v, fechaCaducidad, diasRestantes }
         })
-        // 2. Filtramos usando la variable dinámica de días en vez del número 30 fijo
+        // Filtramos usando la variable dinámica de días
         .filter(({ diasRestantes }) => diasRestantes <= diasAlertaCaducidad)
-        .map(({ v, fechaCaducidad, diasRestantes }) => ({
-          id: `auto-caducidad-${v.id}`,
-          tipo: 'CADUCIDAD_PROXIMA' as const,
-          leida: false,
-          createdAt: v.updatedAt.toISOString(),
-          diasRestantes,
-          fechaCaducidad: fechaCaducidad.toISOString(),
-          variante: {
-            id: v.id,
-            sku: v.sku,
-            nombreVariante: v.nombreVariante || 'Estándar',
-            stockActual: v.stockActual,
-            stockMinimo: v.stockMinimo,
-            producto: {
-              nombre: v.producto.nombre,
-              marca: v.producto.marca || null,
+        .map(({ v, fechaCaducidad, diasRestantes }) => {
+          //  CA01: variante tiene más de 10 unidades y caduca en menos de 15 días
+          const sugerirPromocion = v.stockActual > 10 && diasRestantes < 15
+
+          return {
+            id: `auto-caducidad-${v.id}`,
+            tipo: 'CADUCIDAD_PROXIMA' as const,
+            leida: false,
+            createdAt: v.updatedAt.toISOString(),
+            diasRestantes,
+            fechaCaducidad: fechaCaducidad.toISOString(),
+            sugerirPromocion, // Enviamos la bandera al frontend
+            variante: {
+              id: v.id,
+              sku: v.sku,
+              nombreVariante: v.nombreVariante || 'Estándar',
+              stockActual: v.stockActual, // CA02: Stock actual enviado
+              stockMinimo: v.stockMinimo,
+              producto: {
+                nombre: v.producto.nombre,
+                marca: v.producto.marca || null,
+              },
             },
-          },
-        }))
+          }
+        })
 
       const alertas: any[] = [...alertasCaducidad, ...alertasStock]
 

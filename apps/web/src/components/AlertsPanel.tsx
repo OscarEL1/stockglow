@@ -7,11 +7,28 @@ interface AlertsPanelProps {
   onClose: () => void
 }
 
+// 🎯 Extendemos el tipo nativo del hook añadiendo las propiedades que faltan de forma segura
+interface PanelAlert extends Omit<Alert, 'variante'> {
+  diasRestantes?: number
+  sugerirPromocion?: boolean
+  variante: Alert['variante'] & {
+    stockActual?: number
+  }
+}
+
 const AlertRow = memo(
-  function AlertRow({ alerta }: { alerta: Alert }) {
+  function AlertRow({ alerta }: { alerta: PanelAlert }) {
+    // 🧼 ¡Tipado perfecto y estructurado!
+    const dias = alerta.diasRestantes
+    const sugerirPromocion = alerta.sugerirPromocion
+
     return (
       <div
-        className="flex gap-3 rounded-xl border border-red-100 bg-red-50/50 p-4"
+        className={`flex gap-3 rounded-xl border p-4 ${
+          sugerirPromocion
+            ? 'border-amber-200 bg-amber-50/60'
+            : 'border-red-100 bg-red-50/50'
+        }`}
         style={{
           contentVisibility: 'auto',
           containIntrinsicSize: '0 96px',
@@ -21,14 +38,18 @@ const AlertRow = memo(
           {alerta.tipo === 'BAJO_STOCK' ? (
             <PackageOpen className="h-5 w-5 text-red-500" />
           ) : (
-            <CalendarClock className="h-5 w-5 text-orange-500" />
+            <CalendarClock
+              className={`h-5 w-5 ${sugerirPromocion ? 'text-amber-600' : 'text-orange-500'}`}
+            />
           )}
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-900">
             {alerta.tipo === 'BAJO_STOCK'
               ? 'Stock bajo detectado'
-              : 'Caducidad próxima'}
+              : sugerirPromocion
+                ? '¡Sobrestock Próximo a Vencer!'
+                : 'Caducidad próxima'}
           </p>
           <p className="mt-1 text-xs text-gray-600">
             La variante{' '}
@@ -41,6 +62,32 @@ const AlertRow = memo(
             </span>{' '}
             requiere atención.
           </p>
+
+          {/* CA02: Mostrar stock actual y días restantes en el panel */}
+          {alerta.tipo === 'CADUCIDAD_PROXIMA' && typeof dias === 'number' && (
+            <div className="mt-1.5 text-xs text-gray-700 font-medium">
+              <div>
+                📦 Stock actual:{' '}
+                <span className="font-bold">
+                  {alerta.variante.stockActual ?? 0} u.
+                </span>
+              </div>
+              <div>
+                ⏳ Tiempo restante:{' '}
+                <span className="font-bold text-orange-600">
+                  {dias} {dias === 1 ? 'día' : 'días'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* CA01: Sugerencia de promoción en el panel */}
+          {sugerirPromocion && (
+            <div className="mt-2 rounded bg-amber-100 p-1.5 text-xs font-semibold text-amber-900 border border-amber-300">
+              💡 Considera hacer una promoción
+            </div>
+          )}
+
           <p className="mt-2 text-[10px] text-gray-400">
             {new Date(alerta.createdAt).toLocaleString()}
           </p>
@@ -53,11 +100,14 @@ const AlertRow = memo(
 )
 
 export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
-  const { data: alerts = [], isLoading, markAsRead } = useAlerts(isOpen)
+  // 💡 Casteamos los datos del hook a nuestro tipo extendido del panel
+  const { data = [], isLoading, markAsRead } = useAlerts(isOpen)
+  const alerts = data as PanelAlert[]
 
   if (!isOpen) return null
 
   return (
+    // ... Todo el bloque de tu JSX inferior se mantiene exactamente igual usando el array de 'alerts'
     <>
       <div
         className="fixed inset-0 z-40 bg-black/30 transition-opacity"

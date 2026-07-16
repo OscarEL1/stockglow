@@ -3,13 +3,14 @@ import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
 import { Check, Calendar } from 'lucide-react'
 
-interface Alerta {
+export interface Alerta {
   id: string
   tipo: 'BAJO_STOCK' | 'CADUCIDAD_PROXIMA'
   leida: boolean
   createdAt: string
   fechaCaducidad?: string
   diasRestantes?: number
+  sugerirPromocion?: boolean
   variante: {
     id: string
     sku: string
@@ -68,27 +69,37 @@ function AlertsTable({
                   {tipo === 'CADUCIDAD_PROXIMA' &&
                     fechaCaducidad &&
                     typeof diasRestantes === 'number' && (
-                      <div className="mt-1 inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
-                        <Calendar size={12} />
-                        Vence: {new Date(fechaCaducidad).toLocaleDateString()}
-                        <span
-                          className={
-                            esCaducado
-                              ? 'ml-1 font-bold text-red-600'
-                              : 'ml-1 text-orange-600'
-                          }
-                        >
-                          (
-                          {esCaducado
-                            ? diasRestantes === 0
-                              ? 'Vence hoy'
-                              : `Caducado hace ${Math.abs(diasRestantes)} días`
-                            : `Quedan ${diasRestantes} días`}
-                          )
-                        </span>
+                      <div className="mt-1 flex flex-col gap-1 items-start">
+                        <div className="inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                          <Calendar size={12} />
+                          Vence: {new Date(fechaCaducidad).toLocaleDateString()}
+                          <span
+                            className={
+                              esCaducado
+                                ? 'ml-1 font-bold text-red-600'
+                                : 'ml-1 text-orange-600'
+                            }
+                          >
+                            (
+                            {esCaducado
+                              ? diasRestantes === 0
+                                ? 'Vence hoy'
+                                : `Caducado hace ${Math.abs(diasRestantes)} días`
+                              : `Quedan ${diasRestantes} días`}
+                            )
+                          </span>
+                        </div>
+
+                        {/*  CA01: Sugerencia de promoción si tiene sobrestock y vence pronto */}
+                        {alert.sugerirPromocion && (
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200 animate-pulse">
+                            📢 Considera hacer una promoción
+                          </div>
+                        )}
                       </div>
                     )}
                 </td>
+
                 <td className="px-4 py-4 text-gray-600">
                   {variante.nombreVariante}
                 </td>
