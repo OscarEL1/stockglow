@@ -106,6 +106,12 @@ function SaleDetailModal({
           </span>
         </div>
 
+        {Number(sale.descuento ?? 0) > 0 && (
+          <p className="mb-3 text-right text-sm font-semibold text-red-600">
+            Descuento: -${Number(sale.descuento).toFixed(2)}
+          </p>
+        )}
+
         {/* Tabla de productos */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
           <table className="w-full border-collapse text-sm">
@@ -255,6 +261,7 @@ export function Sales() {
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [search, setSearch] = useState('')
+  const [descuento, setDescuento] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
@@ -294,10 +301,13 @@ export function Sales() {
     )
   })
 
-  const total = items.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + item.cantidad * item.precioUnitario,
     0
   )
+  const total = subtotal - descuento
+  const discountError =
+    descuento > subtotal ? 'El descuento no puede ser mayor al total' : null
 
   function handleSelectVariant(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value
@@ -345,7 +355,7 @@ export function Sales() {
   }
 
   async function handleConfirm() {
-    if (items.length === 0) return
+    if (items.length === 0 || discountError) return
     setError(null)
     try {
       await createSale.mutateAsync({
@@ -353,8 +363,10 @@ export function Sales() {
           varianteId: i.varianteId,
           cantidad: i.cantidad,
         })),
+        descuento,
       })
       setItems([])
+      setDescuento(0)
       setPage(1)
     } catch (err) {
       setError(
@@ -471,15 +483,54 @@ export function Sales() {
             </p>
           )}
 
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700">
+              Subtotal:{' '}
+              <span className="font-semibold text-gray-900">
+                ${subtotal.toFixed(2)}
+              </span>
+            </p>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="descuento"
+                className="text-sm font-medium text-gray-700"
+              >
+                Descuento:
+              </label>
+              <input
+                id="descuento"
+                type="number"
+                min={0}
+                step="0.01"
+                value={descuento}
+                onChange={(e) =>
+                  setDescuento(Math.max(0, Number(e.target.value)))
+                }
+                className="w-28 rounded-lg border border-gray-300 px-3 py-1.5 text-right text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+              />
+            </div>
+          </div>
+
+          {descuento > 0 && (
+            <p className="mb-2 text-right text-sm font-semibold text-red-600">
+              Descuento: -${descuento.toFixed(2)}
+            </p>
+          )}
+
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold text-gray-900">
               Total: <span className="text-[#E85D8C]">${total.toFixed(2)}</span>
             </p>
             <div className="flex flex-col items-end gap-2">
+              {discountError && (
+                <p className="text-sm text-red-500">{discountError}</p>
+              )}
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button
                 onClick={handleConfirm}
-                disabled={items.length === 0 || createSale.isPending}
+                disabled={
+                  items.length === 0 || createSale.isPending || !!discountError
+                }
                 className="flex items-center gap-2 rounded-lg bg-[#E85D8C] px-6 py-2 text-sm font-medium text-white hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {createSale.isPending && (

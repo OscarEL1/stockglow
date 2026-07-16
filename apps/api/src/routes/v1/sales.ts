@@ -109,7 +109,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         }
 
         // 3. Construir detalles con tipo explícito
-        let total = 0
+        let subtotal = 0
         const detalles: DetalleItem[] = []
 
         for (const item of input.items) {
@@ -117,8 +117,8 @@ export async function saleRoutes(fastify: FastifyInstance) {
             where: { id: item.varianteId, tenantId },
           })
 
-          const subtotal = Number(variant!.precioVenta) * item.cantidad
-          total += subtotal
+          const subtotalItem = Number(variant!.precioVenta) * item.cantidad
+          subtotal += subtotalItem
 
           detalles.push({
             varianteId: item.varianteId,
@@ -130,6 +130,11 @@ export async function saleRoutes(fastify: FastifyInstance) {
           })
         }
 
+        const descuento = input.descuento ?? 0
+        if (descuento > subtotal) throw Errors.DISCOUNT_EXCEEDS_SUBTOTAL()
+
+        const total = subtotal - descuento
+
         // 4. Ejecutar transaccion atomica con tipado explícito 'tx: Prisma.TransactionClient'
         const venta = await prisma.$transaction(
           async (tx: Prisma.TransactionClient) => {
@@ -138,6 +143,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 tenantId,
                 usuarioId: internalUserId,
                 total,
+                descuento,
                 estado: 'COMPLETADA',
                 detalles: {
                   create: detalles.map((d) => ({
