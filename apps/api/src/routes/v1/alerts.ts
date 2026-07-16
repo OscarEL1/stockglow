@@ -80,8 +80,10 @@ export async function alertRoutes(fastify: FastifyInstance) {
         // Filtramos usando la variable dinámica de días
         .filter(({ diasRestantes }) => diasRestantes <= diasAlertaCaducidad)
         .map(({ v, fechaCaducidad, diasRestantes }) => {
-          //  CA01: variante tiene más de 10 unidades y caduca en menos de 15 días
-          const sugerirPromocion = v.stockActual > 10 && diasRestantes < 15
+          // CA01: sobrestock (más del triple del mínimo) y caduca dentro del umbral configurado por el tenant
+          const sugerirPromocion =
+            v.stockActual > v.stockMinimo * 3 &&
+            diasRestantes < diasAlertaCaducidad
 
           return {
             id: `auto-caducidad-${v.id}`,

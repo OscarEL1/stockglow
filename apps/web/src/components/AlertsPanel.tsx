@@ -7,18 +7,8 @@ interface AlertsPanelProps {
   onClose: () => void
 }
 
-// 🎯 Extendemos el tipo nativo del hook añadiendo las propiedades que faltan de forma segura
-interface PanelAlert extends Omit<Alert, 'variante'> {
-  diasRestantes?: number
-  sugerirPromocion?: boolean
-  variante: Alert['variante'] & {
-    stockActual?: number
-  }
-}
-
 const AlertRow = memo(
-  function AlertRow({ alerta }: { alerta: PanelAlert }) {
-    // 🧼 ¡Tipado perfecto y estructurado!
+  function AlertRow({ alerta }: { alerta: Alert }) {
     const dias = alerta.diasRestantes
     const sugerirPromocion = alerta.sugerirPromocion
 
@@ -100,9 +90,7 @@ const AlertRow = memo(
 )
 
 export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
-  // 💡 Casteamos los datos del hook a nuestro tipo extendido del panel
-  const { data = [], isLoading, markAsRead } = useAlerts(isOpen)
-  const alerts = data as PanelAlert[]
+  const { data: alerts = [], isLoading, markAsRead } = useAlerts(isOpen)
 
   if (!isOpen) return null
 
