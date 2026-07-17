@@ -19,6 +19,8 @@ import {
   Bell,
   CheckCircle2,
   PackageX,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react'
 
 export function Dashboard() {
@@ -79,8 +81,8 @@ export function Dashboard() {
 
         {/* Summary cards loading skeleton */}
         {isLoading && (
-          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
-            {[...Array(5)].map((_, i) => (
+          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-6">
+            {[...Array(6)].map((_, i) => (
               <div
                 key={i}
                 className="h-36 animate-pulse rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
@@ -109,7 +111,7 @@ export function Dashboard() {
 
         {/* Summary cards */}
         {!isLoading && !isError && summary && (
-          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-6">
             {/* Card 0: Ventas de Hoy */}
             <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-white p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center">
               <div className="rounded-xl bg-blue-100/60 p-3 text-blue-600 mb-3">
@@ -217,6 +219,58 @@ export function Dashboard() {
               {alerts.length > 0 && (
                 <p className="mt-1 text-xs font-medium text-yellow-600">
                   Ver alertas
+                </p>
+              )}
+            </div>
+
+            {/* Card 5: Ventas del Mes (HU-068) */}
+            <div className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center ${
+              summary.totalVentasMesAnterior > 0 
+                ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
+                    ? 'border-green-100 bg-gradient-to-br from-green-50/50 to-white' 
+                    : 'border-red-100 bg-gradient-to-br from-red-50/50 to-white')
+                : 'border-blue-100 bg-gradient-to-br from-blue-50/50 to-white'
+            }`}>
+              <div className={`rounded-xl p-3 mb-3 ${
+                summary.totalVentasMesAnterior > 0 
+                  ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
+                      ? 'bg-green-100/60 text-green-600' 
+                      : 'bg-red-100/60 text-red-600')
+                  : 'bg-blue-100/60 text-blue-600'
+              }`}>
+                {summary.totalVentasMesAnterior > 0 ? (
+                  summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
+                    ? <TrendingUp className="h-6 w-6" /> 
+                    : <TrendingDown className="h-6 w-6" />
+                ) : (
+                  <DollarSign className="h-6 w-6" />
+                )}
+              </div>
+              <p className={`text-xs font-semibold uppercase tracking-wider ${
+                summary.totalVentasMesAnterior > 0 
+                  ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? 'text-green-600' : 'text-red-600')
+                  : 'text-blue-600'
+              }`}>
+                Ventas del Mes
+              </p>
+              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                $
+                {Number(summary.totalVentasMesActual).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              {summary.totalVentasMesAnterior > 0 && (
+                <p className={`mt-3 text-xs font-medium ${
+                  summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? '+' : ''}
+                  {(((summary.totalVentasMesActual - summary.totalVentasMesAnterior) / summary.totalVentasMesAnterior) * 100).toFixed(1)}% vs mes ant.
+                </p>
+              )}
+              {summary.totalVentasMesAnterior === 0 && (
+                <p className="mt-3 text-xs text-[#7A7480]">
+                  Ingresos de este mes
                 </p>
               )}
             </div>
