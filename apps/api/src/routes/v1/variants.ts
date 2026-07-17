@@ -66,6 +66,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       const variants = await prisma.varianteProducto.findMany({
         where: {
           tenantId: request.tenantId,
+          activo: true,
           ...(categoria && categoria !== 'Todas'
             ? { producto: { categoria } }
             : {}),
@@ -227,6 +228,34 @@ export async function variantRoutes(fastify: FastifyInstance) {
               : null,
           }),
         },
+        include: {
+          producto: true,
+        },
+      })
+
+      return reply.send(successResponse(updated))
+    }
+  )
+
+  // PATCH /api/v1/inventory/variants/:id/archive
+  fastify.patch(
+    '/:id/archive',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const variant = await prisma.varianteProducto.findFirst({
+        where: {
+          id: request.params.id,
+          tenantId: request.tenantId,
+        },
+      })
+
+      if (!variant) throw Errors.VARIANT_NOT_FOUND()
+
+      const updated = await prisma.varianteProducto.update({
+        where: { id: request.params.id },
+        data: { activo: false },
         include: {
           producto: true,
         },
