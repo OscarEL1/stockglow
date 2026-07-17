@@ -14,6 +14,7 @@ import {
   ChevronDown,
   AlertTriangle,
   ImageIcon,
+  CalendarClock,
 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
@@ -25,6 +26,41 @@ type SortField = 'name' | 'price' | 'stock'
 type SortDirection = 'asc' | 'desc'
 const ITEMS_PER_PAGE = 20
 const DIAS_ALERTA_CADUCIDAD = 30
+const DIAS_INACTIVIDAD_ALERTA = 60
+
+function InactividadBadge({ updatedAt }: { updatedAt: string }) {
+  if (!updatedAt) return null
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const ultimoMovimiento = new Date(updatedAt)
+  ultimoMovimiento.setHours(0, 0, 0, 0)
+
+  const diasTranscurridos = Math.floor(
+    (hoy.getTime() - ultimoMovimiento.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  // Solo se muestra si han pasado más de 60 días sin movimiento
+  if (diasTranscurridos <= DIAS_INACTIVIDAD_ALERTA) {
+    return null
+  }
+
+  const fechaFormateada = ultimoMovimiento.toLocaleDateString('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  return (
+    <span
+      className="inline-flex items-center justify-center text-red-500 hover:text-red-700 transition-colors cursor-help"
+      title={`Última modificación: ${fechaFormateada}`}
+    >
+      <CalendarClock className="h-4 w-4" />
+    </span>
+  )
+}
 
 function CaducidadCell({ fechaCaducidad }: { fechaCaducidad: string | null }) {
   if (!fechaCaducidad) {
@@ -472,7 +508,10 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                       </td>
 
                       <td className="px-6 py-5 text-sm text-gray-900">
-                        {variant.nombreVariante}
+                        <div className="flex items-center gap-2">
+                          <span>{variant.nombreVariante}</span>
+                          <InactividadBadge updatedAt={variant.updatedAt} />
+                        </div>
                       </td>
 
                       <td className="px-6 py-5">
