@@ -42,10 +42,43 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       ).length
       const agotados = variants.filter((v) => v.stockActual === 0).length
 
+      // Determine start of current month
+      const now = new Date()
+      const startCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      startCurrentMonth.setHours(0, 0, 0, 0)
+
+      // Determine start of previous month
+      const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      startPrevMonth.setHours(0, 0, 0, 0)
+      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1) // last ms of previous month
+
+      // Sales for current month
+      const currentMonthQuery = await prisma.venta.aggregate({
+        where: {
+          tenantId: request.tenantId,
+          createdAt: { gte: startCurrentMonth },
+          estado: 'COMPLETADA',
+        },
+        _sum: { total: true },
+      })
+
+      // Sales for previous month
+      const prevMonthQuery = await prisma.venta.aggregate({
+        where: {
+          tenantId: request.tenantId,
+          createdAt: { gte: startPrevMonth, lte: endPrevMonth },
+          estado: 'COMPLETADA',
+        },
+        _sum: { total: true },
+      })
+
+      const totalVentasMesActual = Number(currentMonthQuery._sum.total || 0)
+      const totalVentasMesAnterior = Number(prevMonthQuery._sum.total || 0)
+
+      // Existing today sales (keep for other UI)
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-
-      const ventasQuery = await prisma.venta.aggregate({
+      const ventasHoyQuery = await prisma.venta.aggregate({
         where: {
           tenantId: request.tenantId,
           createdAt: { gte: today },
@@ -53,8 +86,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         },
         _sum: { total: true },
       })
-
-      const totalVentasHoy = Number(ventasQuery._sum.total || 0)
+      const totalVentasHoy = Number(ventasHoyQuery._sum.total || 0)
 
       return reply.send(
         successResponse({
@@ -63,6 +95,8 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           totalValue,
           totalAlerts,
           totalVentasHoy,
+          totalVentasMesActual,
+          totalVentasMesAnterior,
           disponibles,
           stockBajo,
           agotados,
