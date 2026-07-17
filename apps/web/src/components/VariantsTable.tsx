@@ -26,7 +26,7 @@ type SortField = 'name' | 'price' | 'stock'
 type SortDirection = 'asc' | 'desc'
 const ITEMS_PER_PAGE = 20
 const DIAS_ALERTA_CADUCIDAD = 30
-const DIAS_INACTIVIDAD_ALERTA = 2
+const DIAS_INACTIVIDAD_ALERTA = 60
 
 function InactividadBadge({ updatedAt }: { updatedAt: string }) {
   if (!updatedAt) return null
