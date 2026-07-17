@@ -55,7 +55,7 @@ function InactividadBadge({ updatedAt }: { updatedAt: string }) {
   return (
     <span
       className="inline-flex items-center justify-center text-red-500 hover:text-red-700 transition-colors cursor-help"
-      title={`Último movimiento: ${fechaFormateada}`} // <-- HOVER CON FECHA DE ÚLTIMO MOVIMIENTO (CA02)
+      title={`Última modificación: ${fechaFormateada}`}
     >
       <CalendarClock className="h-4 w-4" />
     </span>
