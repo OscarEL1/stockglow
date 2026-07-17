@@ -79,8 +79,8 @@ export function Dashboard() {
 
         {/* Summary cards loading skeleton */}
         {isLoading && (
-          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
-            {[...Array(5)].map((_, i) => (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
               <div
                 key={i}
                 className="h-36 animate-pulse rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
@@ -109,7 +109,7 @@ export function Dashboard() {
 
         {/* Summary cards */}
         {!isLoading && !isError && summary && (
-          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Card 0: Ventas de Hoy */}
             <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-white p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center">
               <div className="rounded-xl bg-blue-100/60 p-3 text-blue-600 mb-3">
@@ -180,45 +180,6 @@ export function Dashboard() {
               <p className="mt-3 text-xs text-[#7A7480]">
                 Valor total del inventario
               </p>
-            </div>
-
-            {/* Card 4: Active Alerts */}
-            <div
-              role="button"
-              onClick={() => setIsAlertsOpen(true)}
-              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md cursor-pointer flex flex-col items-center text-center ${
-                summary.totalAlerts > 0
-                  ? 'border-yellow-200 bg-gradient-to-br from-yellow-50/40 to-white'
-                  : 'border-gray-100 bg-gradient-to-br from-gray-50/50 to-white'
-              }`}
-            >
-              <div
-                className={`rounded-xl p-3 mb-3 ${
-                  summary.totalAlerts > 0
-                    ? 'bg-yellow-100/70 text-yellow-700'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                <AlertTriangle className="h-6 w-6" />
-              </div>
-              <p
-                className={`text-xs font-semibold uppercase tracking-wider ${
-                  summary.totalAlerts > 0 ? 'text-yellow-700' : 'text-gray-500'
-                }`}
-              >
-                Alertas activas
-              </p>
-              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
-                {summary.totalAlerts}
-              </p>
-              <p className="mt-3 text-xs text-[#7A7480]">
-                Variantes con stock bajo
-              </p>
-              {alerts.length > 0 && (
-                <p className="mt-1 text-xs font-medium text-yellow-600">
-                  Ver alertas
-                </p>
-              )}
             </div>
           </div>
         )}

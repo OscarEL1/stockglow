@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
 import { useCategories } from '../hooks/useCategories'
+import { useArchiveVariant } from '../hooks/useArchiveVariant'
+import { useRole } from '../hooks/useRole'
 import {
   Eye,
   History,
@@ -166,7 +168,9 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
   const [detailVariant, setDetailVariant] = useState<Variant | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [stockVariant, setStockVariant] = useState<Variant | null>(null)
+  const [variantToArchive, setVariantToArchive] = useState<Variant | null>(null)
 
+  const { isAdmin } = useRole()
   const { data: categories = [] } = useCategories()
   const {
     data: variants = [],
@@ -174,6 +178,7 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
     isError,
     error,
   } = useVariants(categoria)
+  const { mutate: archiveVariant, isPending: isArchiving } = useArchiveVariant()
   const [historyVariant, setHistoryVariant] = useState<{
     id: string
     name: string
@@ -190,6 +195,25 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
 
     setSortField(field)
     setSortDirection('asc')
+  }
+
+  function handleConfirmArchive() {
+    if (!variantToArchive) return
+
+    archiveVariant(variantToArchive.id, {
+      onSuccess: () => {
+        onSuccess('Variante eliminada correctamente')
+        setVariantToArchive(null)
+      },
+      onError: (mutationError) => {
+        onError(
+          mutationError instanceof Error
+            ? mutationError.message
+            : 'No se pudo eliminar la variante'
+        )
+        setVariantToArchive(null)
+      },
+    })
   }
 
   const visibleVariants = useMemo(() => {
@@ -521,17 +545,17 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                             <History className="h-4 w-4" />
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('Eliminar variante:', variant.id)
-                            }}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                            title="Eliminar variante"
-                            aria-label={`Eliminar ${variant.nombreVariante}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => setVariantToArchive(variant)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                              title="Eliminar variante"
+                              aria-label={`Eliminar ${variant.nombreVariante}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -628,6 +652,50 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
         variantId={historyVariant?.id || null}
         variantName={historyVariant?.name}
       />
+
+      {variantToArchive && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="archive-variant-title"
+        >
+          <div className="w-full max-w-[480px] rounded-[28px] bg-white px-10 py-9 shadow-2xl">
+            <h2
+              id="archive-variant-title"
+              className="text-xl font-extrabold leading-tight text-[#2D2A32]"
+            >
+              Eliminar variante
+            </h2>
+            <p className="mt-4 text-sm text-[#7A7480]">
+              ¿Estás seguro de que deseas eliminar{' '}
+              <span className="font-semibold text-[#2D2A32]">
+                {variantToArchive.nombreVariante}
+              </span>
+              ? Dejará de aparecer en el inventario, pero se conservará su
+              historial de ventas y movimientos.
+            </p>
+            <div className="mt-8 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setVariantToArchive(null)}
+                disabled={isArchiving}
+                className="h-12 min-w-[130px] rounded-2xl bg-gray-200 px-6 text-sm font-bold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmArchive}
+                disabled={isArchiving}
+                className="h-12 min-w-[130px] rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isArchiving ? 'Eliminando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
