@@ -40,7 +40,7 @@ export function BarcodeScannerModal({
         // Success
         onDetected(decodedText)
       },
-      (error) => {
+      () => {
         // Ignored, happens constantly as it scans
       }
     )
