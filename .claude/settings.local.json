@@ -14,7 +14,9 @@
       "Bash(echo \"LINT WEB EXIT: $?\")",
       "Bash(echo \"TSC EXIT: $?\")",
       "Bash(echo \"LINT EXIT: $?\")",
-      "Bash(echo \"LINT API EXIT: $?\")"
+      "Bash(echo \"LINT API EXIT: $?\")",
+      "Bash(git fetch *)",
+      "Bash(pnpm -r lint)"
     ]
   }
 }
