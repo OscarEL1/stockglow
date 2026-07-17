@@ -15,11 +15,13 @@ import {
   AlertTriangle,
   ImageIcon,
   CalendarClock,
+  ScanBarcode,
 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
 import { AdjustStockModal } from './AdjustStockModal'
 import { VariantDetailModal } from './VariantDetailModal'
+import { BarcodeScannerModal } from './BarcodeScannerModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 type SortField = 'name' | 'price' | 'stock'
@@ -205,6 +207,7 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [stockVariant, setStockVariant] = useState<Variant | null>(null)
   const [variantToArchive, setVariantToArchive] = useState<Variant | null>(null)
+  const [showScanner, setShowScanner] = useState(false)
 
   const { isAdmin } = useRole()
   const { data: categories = [] } = useCategories()
@@ -250,6 +253,20 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
         setVariantToArchive(null)
       },
     })
+  }
+
+  function handleBarcodeDetected(code: string) {
+    setShowScanner(false)
+    const exists = variants.some(
+      (v) => v.sku?.toLowerCase() === code.toLowerCase()
+    )
+    if (!exists) {
+      onError('Producto no encontrado en el inventario')
+      return
+    }
+    setSearch(code)
+    setCurrentPage(1)
+    onSuccess('Producto encontrado')
   }
 
   const visibleVariants = useMemo(() => {
@@ -333,16 +350,25 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
     <section className="space-y-4">
       <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
         <div className="flex w-full flex-col gap-3 md:max-w-xl md:flex-row md:items-center">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setCurrentPage(1)
-            }}
-            placeholder="Buscar producto, SKU o tono..."
-            className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
-          />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value)
+                setCurrentPage(1)
+              }}
+              placeholder="Buscar producto, SKU o tono..."
+              className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+            />
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-pink-50 hover:text-pink-600 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"
+              title="Escanear código de barras"
+            >
+              <ScanBarcode className="h-5 w-5" />
+            </button>
+          </div>
           <select
             value={categoria}
             onChange={(e) => {
@@ -480,7 +506,9 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                   return (
                     <tr
                       key={variant.id}
-                      className="transition hover:bg-pink-50/40"
+                      className={`transition hover:bg-pink-50/40 ${
+                        search && variant.sku?.toLowerCase() === search.toLowerCase() ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''
+                      }`}
                     >
                       <td className="px-4 py-4">
                         {variant.imagenUrl ? (
@@ -735,6 +763,12 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
           </div>
         </div>
       )}
+
+      <BarcodeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={handleBarcodeDetected}
+      />
     </section>
   )
 }
