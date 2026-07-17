@@ -11,11 +11,15 @@ const updateSettingsSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .optional(),
   logoUrl: z.string().url('URL de logo inválida').nullable().optional(),
-  // 👇 NUEVA VALIDACIÓN: Debe ser un número entero mayor o igual a 1
   umbralDiasCaducidad: z
     .number()
     .int()
     .min(1, 'El umbral debe ser de al menos 1 día')
+    .optional(),
+  stockMinimoGlobal: z
+    .number()
+    .int()
+    .min(0, 'El stock mínimo global no puede ser negativo')
     .optional(),
 })
 
@@ -36,6 +40,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           nombreTienda: true,
           logoUrl: true,
           umbralDiasCaducidad: true,
+          stockMinimoGlobal: true,
         },
       })
 
@@ -43,8 +48,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         successResponse({
           nombre: tenant?.nombreTienda ?? '',
           logoUrl: tenant?.logoUrl ?? null,
-          // 👇 AÑADIDO: Si no tiene valor, mandamos 30 por defecto al frontend
           umbralDiasCaducidad: tenant?.umbralDiasCaducidad ?? 30,
+          stockMinimoGlobal: tenant?.stockMinimoGlobal ?? 5,
         })
       )
     }
@@ -62,9 +67,11 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         data: {
           ...(input.nombre !== undefined && { nombreTienda: input.nombre }),
           ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
-          // 👇 AÑADIDO: Si viene el campo en el body, lo actualizamos en la DB
           ...(input.umbralDiasCaducidad !== undefined && {
             umbralDiasCaducidad: input.umbralDiasCaducidad,
+          }),
+          ...(input.stockMinimoGlobal !== undefined && {
+            stockMinimoGlobal: input.stockMinimoGlobal,
           }),
         },
       })
@@ -73,8 +80,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         successResponse({
           nombre: tenant.nombreTienda,
           logoUrl: tenant.logoUrl,
-          // 👇 AÑADIDO: Retornamos el valor actualizado
           umbralDiasCaducidad: tenant.umbralDiasCaducidad,
+          stockMinimoGlobal: tenant.stockMinimoGlobal,
         })
       )
     }
