@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { SignIn, SignUp, useAuth } from '@clerk/clerk-react'
+import { SignIn, SignUp, useAuth, useOrganization } from '@clerk/clerk-react'
 import { Dashboard } from './pages/Dashboard'
 import { Inventory } from './pages/Inventory'
 import { Sales } from './pages/Sales'
@@ -11,7 +11,6 @@ import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
-import { useOnboardingStatus } from './hooks/useOnboardingStatus'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -32,9 +31,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RootRedirect() {
-  const { data: status, isLoading } = useOnboardingStatus()
+  const { organization, isLoaded } = useOrganization()
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
@@ -42,10 +41,11 @@ function RootRedirect() {
     )
   }
 
-  const onboardingCompleto = (status?.wizardStep ?? 1) >= 3
-
   return (
-    <Navigate to={onboardingCompleto ? '/dashboard' : '/onboarding'} replace />
+    <Navigate
+      to={organization !== null ? '/dashboard' : '/onboarding'}
+      replace
+    />
   )
 }
 
