@@ -26,27 +26,22 @@ export async function saleRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const { tenantId } = request
 
+      console.log('TENANT:', tenantId)
+
       const ventas = await prisma.venta.findMany({
-        where: { tenantId },
         include: {
-          detalles: {
-            include: {
-              variante: {
-                select: {
-                  nombreVariante: true,
-                  sku: true,
-                  imagenUrl: true,
-                },
-              },
-            },
-          },
-          usuario: {
-            select: { nombre: true, rol: true },
-          },
+          usuario: true,
+          detalles: true,
         },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
       })
+
+      console.log('TODAS LAS VENTAS:')
+      console.log(
+        ventas.map((v) => ({
+          id: v.id,
+          tenantId: v.tenantId,
+        }))
+      )
 
       return reply.send(successResponse(ventas))
     }
