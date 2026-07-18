@@ -11,6 +11,7 @@ import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
+import { Profile } from './pages/Profile'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -170,7 +171,14 @@ export default function App() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/access-denied"
         element={
