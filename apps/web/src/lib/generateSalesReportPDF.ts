@@ -5,15 +5,19 @@ import type { Sale } from '../hooks/useSales'
 export function generateSalesReportPDF(
   sales: Sale[],
   startDate: string,
-  endDate: string
+  endDate: string,
+  tenantName: string
 ) {
   const doc = new jsPDF()
 
   doc.setFontSize(18)
-  doc.text('Reporte de Ventas', 14, 20)
+  doc.text(tenantName || 'Tienda', 14, 14)
+
+  doc.setFontSize(14)
+  doc.text('Reporte de Ventas', 14, 22)
 
   doc.setFontSize(11)
-  doc.text(`Periodo: ${startDate || 'Inicio'} - ${endDate || 'Hoy'}`, 14, 30)
+  doc.text(`Periodo: ${startDate || 'Inicio'} - ${endDate || 'Hoy'}`, 14, 32)
 
   let totalGeneral = 0
 

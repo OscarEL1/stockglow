@@ -255,9 +255,9 @@ function SaleDetailModal({
 }
 
 export function Sales() {
+  const { organization } = useOrganization()
   const { data: variants = [] } = useVariants()
   const { data: sales = [], isLoading: loadingSales } = useSales()
-  console.log('VENTAS:', sales)
   const createSale = useCreateSale()
 
   const [items, setItems] = useState<SaleItemLocal[]>([])
@@ -553,7 +553,12 @@ export function Sales() {
 
             <button
               onClick={() =>
-                generateSalesReportPDF(filteredSales, fechaInicio, fechaFin)
+                generateSalesReportPDF(
+                  filteredSales,
+                  fechaInicio,
+                  fechaFin,
+                  organization?.name || 'Tienda'
+                )
               }
               className="rounded-lg bg-[#E85D8C] px-4 py-2 text-sm font-medium text-white hover:bg-[#D94B7D]"
             >

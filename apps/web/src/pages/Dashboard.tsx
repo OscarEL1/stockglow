@@ -26,8 +26,6 @@ import {
 export function Dashboard() {
   const navigate = useNavigate()
   const { organization } = useOrganization()
-  console.log('ORGANIZATION:', organization)
-  console.log('ORGANIZATION ID:', organization?.id)
   const queryClient = useQueryClient()
   useStockWebSocket(organization?.id ?? null, queryClient)
 
