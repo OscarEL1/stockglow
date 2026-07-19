@@ -9,13 +9,16 @@ export const clerkAuth = fp(async (fastify) => {
   })
 
   fastify.decorate('authenticate', async (request: any, reply: any) => {
-    const { userId, orgId } = getAuth(request)
+    const auth = getAuth(request)
+
+    const { userId, orgId, orgRole } = auth
+
     if (!userId || !orgId) {
       return reply.status(401).send({
         success: false,
         error: {
-          code: 'Unauthorized',
-          message: 'Token JWT ausente o invalido',
+          code: 'UNAUTHORIZED',
+          message: 'Token JWT ausente o inválido',
           statusCode: 401,
         },
       })
@@ -23,5 +26,6 @@ export const clerkAuth = fp(async (fastify) => {
 
     request.tenantId = orgId
     request.userId = userId
+    request.orgRole = orgRole ?? null
   })
 })
