@@ -27,15 +27,5 @@ export const clerkAuth = fp(async (fastify) => {
     request.tenantId = orgId
     request.userId = userId
     request.orgRole = orgRole ?? null
-
-    // Temporal para comprobar qué está enviando Clerk
-    fastify.log.info(
-      {
-        userId,
-        orgId,
-        orgRole,
-      },
-      'Usuario autenticado mediante Clerk'
-    )
   })
 })
