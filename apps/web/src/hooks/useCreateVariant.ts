@@ -8,7 +8,7 @@ interface CreateVariantData {
   nombreVariante: string
   precioVenta: number
   stockActual: number
-  stockMinimo: number
+  stockMinimo?: number
   imagenUrl?: string
   fechaCaducidad?: string
 }

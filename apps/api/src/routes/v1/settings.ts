@@ -11,6 +11,16 @@ const updateSettingsSchema = z.object({
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .optional(),
   logoUrl: z.string().url('URL de logo inválida').nullable().optional(),
+  umbralDiasCaducidad: z
+    .number()
+    .int()
+    .min(1, 'El umbral debe ser de al menos 1 día')
+    .optional(),
+  stockMinimoGlobal: z
+    .number()
+    .int()
+    .min(0, 'El stock mínimo global no puede ser negativo')
+    .optional(),
 })
 
 const createCategorySchema = z.object({
@@ -25,13 +35,21 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const tenant = await prisma.tenant.findUnique({
         where: { id: request.tenantId },
-        select: { nombreTienda: true, logoUrl: true },
+        // 👇 AÑADIDO: Traemos también el umbral guardado
+        select: {
+          nombreTienda: true,
+          logoUrl: true,
+          umbralDiasCaducidad: true,
+          stockMinimoGlobal: true,
+        },
       })
 
       return reply.send(
         successResponse({
           nombre: tenant?.nombreTienda ?? '',
           logoUrl: tenant?.logoUrl ?? null,
+          umbralDiasCaducidad: tenant?.umbralDiasCaducidad ?? 30,
+          stockMinimoGlobal: tenant?.stockMinimoGlobal ?? 5,
         })
       )
     }
@@ -49,6 +67,12 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         data: {
           ...(input.nombre !== undefined && { nombreTienda: input.nombre }),
           ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
+          ...(input.umbralDiasCaducidad !== undefined && {
+            umbralDiasCaducidad: input.umbralDiasCaducidad,
+          }),
+          ...(input.stockMinimoGlobal !== undefined && {
+            stockMinimoGlobal: input.stockMinimoGlobal,
+          }),
         },
       })
 
@@ -56,6 +80,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         successResponse({
           nombre: tenant.nombreTienda,
           logoUrl: tenant.logoUrl,
+          umbralDiasCaducidad: tenant.umbralDiasCaducidad,
+          stockMinimoGlobal: tenant.stockMinimoGlobal,
         })
       )
     }

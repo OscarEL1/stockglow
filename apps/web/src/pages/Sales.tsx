@@ -7,6 +7,7 @@ import { useCancelSale } from '../hooks/useCancelSale'
 import { Layout } from '../components/Layout'
 import { useOrganization } from '@clerk/clerk-react'
 import { generateReceiptPDF } from '../lib/generateReceiptPDF'
+import { generateSalesReportPDF } from '../lib/generateSalesReportPDF'
 
 interface SaleItemLocal {
   varianteId: string
@@ -54,12 +55,12 @@ function SaleDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 py-8 backdrop-blur-[1px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sale-detail-title"
     >
-      <div className="w-full max-w-2xl rounded-[28px] bg-white px-8 py-7 shadow-2xl">
+      <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[28px] bg-white px-8 py-7 shadow-2xl">
         {/* Header */}
         <div className="mb-5 flex items-start justify-between">
           <div>
@@ -94,6 +95,7 @@ function SaleDetailModal({
               Vendido por:{' '}
               <span className="font-medium text-[#2D2A32]">
                 {sale.usuario.nombre}
+                {sale.usuario.rol && ` (${sale.usuario.rol})`}
               </span>
             </span>
           )}
@@ -105,9 +107,15 @@ function SaleDetailModal({
           </span>
         </div>
 
+        {Number(sale.descuento ?? 0) > 0 && (
+          <p className="mb-3 text-right text-sm font-semibold text-red-600">
+            Descuento: -${Number(sale.descuento).toFixed(2)}
+          </p>
+        )}
+
         {/* Tabla de productos */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
-          <table className="min-w-full border-collapse text-sm">
+          <table className="w-full border-collapse text-sm">
             <thead className="bg-pink-50/70">
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -223,7 +231,9 @@ function SaleDetailModal({
             )}
             {sale.estado === 'COMPLETADA' && (
               <button
-                onClick={() => generateReceiptPDF(sale, organization?.name || 'Tienda')}
+                onClick={() =>
+                  generateReceiptPDF(sale, organization?.name || 'Tienda')
+                }
                 className="rounded-xl bg-[#2D2A32] px-6 py-2 text-sm font-bold text-white hover:bg-black"
               >
                 Imprimir ticket
@@ -245,6 +255,7 @@ function SaleDetailModal({
 }
 
 export function Sales() {
+  const { organization } = useOrganization()
   const { data: variants = [] } = useVariants()
   const { data: sales = [], isLoading: loadingSales } = useSales()
   const createSale = useCreateSale()
@@ -252,6 +263,7 @@ export function Sales() {
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [search, setSearch] = useState('')
+  const [descuento, setDescuento] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
@@ -291,10 +303,13 @@ export function Sales() {
     )
   })
 
-  const total = items.reduce(
+  const subtotal = items.reduce(
     (sum, item) => sum + item.cantidad * item.precioUnitario,
     0
   )
+  const total = subtotal - descuento
+  const discountError =
+    descuento > subtotal ? 'El descuento no puede ser mayor al total' : null
 
   function handleSelectVariant(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value
@@ -342,7 +357,7 @@ export function Sales() {
   }
 
   async function handleConfirm() {
-    if (items.length === 0) return
+    if (items.length === 0 || discountError) return
     setError(null)
     try {
       await createSale.mutateAsync({
@@ -350,8 +365,10 @@ export function Sales() {
           varianteId: i.varianteId,
           cantidad: i.cantidad,
         })),
+        descuento,
       })
       setItems([])
+      setDescuento(0)
       setPage(1)
     } catch (err) {
       setError(
@@ -468,15 +485,54 @@ export function Sales() {
             </p>
           )}
 
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-700">
+              Subtotal:{' '}
+              <span className="font-semibold text-gray-900">
+                ${subtotal.toFixed(2)}
+              </span>
+            </p>
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="descuento"
+                className="text-sm font-medium text-gray-700"
+              >
+                Descuento:
+              </label>
+              <input
+                id="descuento"
+                type="number"
+                min={0}
+                step="0.01"
+                value={descuento}
+                onChange={(e) =>
+                  setDescuento(Math.max(0, Number(e.target.value)))
+                }
+                className="w-28 rounded-lg border border-gray-300 px-3 py-1.5 text-right text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+              />
+            </div>
+          </div>
+
+          {descuento > 0 && (
+            <p className="mb-2 text-right text-sm font-semibold text-red-600">
+              Descuento: -${descuento.toFixed(2)}
+            </p>
+          )}
+
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold text-gray-900">
               Total: <span className="text-[#E85D8C]">${total.toFixed(2)}</span>
             </p>
             <div className="flex flex-col items-end gap-2">
+              {discountError && (
+                <p className="text-sm text-red-500">{discountError}</p>
+              )}
               {error && <p className="text-sm text-red-500">{error}</p>}
               <button
                 onClick={handleConfirm}
-                disabled={items.length === 0 || createSale.isPending}
+                disabled={
+                  items.length === 0 || createSale.isPending || !!discountError
+                }
                 className="flex items-center gap-2 rounded-lg bg-[#E85D8C] px-6 py-2 text-sm font-medium text-white hover:bg-[#D94B7D] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {createSale.isPending && (
@@ -490,10 +546,25 @@ export function Sales() {
 
         {/* Historial de ventas */}
         <section className="rounded-xl border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-xl font-bold text-[#2D2A32]">
-            Historial de ventas
-          </h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-[#2D2A32]">
+              Historial de ventas
+            </h2>
 
+            <button
+              onClick={() =>
+                generateSalesReportPDF(
+                  filteredSales,
+                  fechaInicio,
+                  fechaFin,
+                  organization?.name || 'Tienda'
+                )
+              }
+              className="rounded-lg bg-[#E85D8C] px-4 py-2 text-sm font-medium text-white hover:bg-[#D94B7D]"
+            >
+              Exportar PDF
+            </button>
+          </div>
           {/* Filtros de fecha */}
           <div className="mb-4 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
@@ -573,6 +644,9 @@ export function Sales() {
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Estado
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Vendedor
+                      </th>
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Acciones
                       </th>
@@ -596,6 +670,9 @@ export function Sales() {
                           >
                             {sale.estado}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {sale.usuario?.nombre ?? '—'}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button

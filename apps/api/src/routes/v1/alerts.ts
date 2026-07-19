@@ -2,8 +2,23 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 
-const DIAS_ALERTA_CADUCIDAD = 30
 const MS_POR_DIA = 1000 * 60 * 60 * 24
+
+function diasRestantesHasta(fecha: Date): number {
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const utcHoy = Date.UTC(
+    hoy.getUTCFullYear(),
+    hoy.getUTCMonth(),
+    hoy.getUTCDate()
+  )
+  const utcFecha = Date.UTC(
+    fecha.getUTCFullYear(),
+    fecha.getUTCMonth(),
+    fecha.getUTCDate()
+  )
+  return Math.floor((utcFecha - utcHoy) / MS_POR_DIA)
+}
 
 export async function alertRoutes(fastify: FastifyInstance) {
   // GET /api/v1/alerts
@@ -18,6 +33,15 @@ export async function alertRoutes(fastify: FastifyInstance) {
       const whereClause = includeRead
         ? { tenantId }
         : { tenantId, leida: false }
+
+      // 1. Buscamos el umbral configurado por la tienda (Tenant)
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { umbralDiasCaducidad: true },
+      })
+
+      // Si por alguna razón no tiene configuración asignada, usamos 30 por defecto
+      const diasAlertaCaducidad = tenant?.umbralDiasCaducidad ?? 30
 
       // Alertas persistidas (hoy: BAJO_STOCK, generadas al confirmar una venta)
       const alertasStock = await prisma.alerta.findMany({
@@ -38,10 +62,15 @@ export async function alertRoutes(fastify: FastifyInstance) {
         orderBy: { createdAt: 'desc' },
       })
 
-      // Alertas de caducidad: aún no se persisten en `alertas`, se calculan
-      // al vuelo a partir de fechaCaducidad de cada variante.
+      // Alertas de caducidad: no tienen fila propia en `alertas`, se calculan
+      // al vuelo a partir de fechaCaducidad de cada variante. El estado de
+      // lectura se persiste en VarianteProducto.alertaLeida.
       const variantesConCaducidad = await prisma.varianteProducto.findMany({
-        where: { tenantId, fechaCaducidad: { not: null } },
+        where: {
+          tenantId,
+          fechaCaducidad: { not: null },
+          ...(includeRead ? {} : { alertaLeida: false }),
+        },
         include: {
           producto: {
             select: { nombre: true, marca: true },
@@ -49,46 +78,41 @@ export async function alertRoutes(fastify: FastifyInstance) {
         },
       })
 
-      const hoy = new Date()
-      hoy.setHours(0, 0, 0, 0)
-      const utcHoy = Date.UTC(
-        hoy.getUTCFullYear(),
-        hoy.getUTCMonth(),
-        hoy.getUTCDate()
-      )
-
       const alertasCaducidad = variantesConCaducidad
-        .map((v) => {
-          const fechaCaducidad = v.fechaCaducidad as Date
-          const utcCaducidad = Date.UTC(
-            fechaCaducidad.getUTCFullYear(),
-            fechaCaducidad.getUTCMonth(),
-            fechaCaducidad.getUTCDate()
-          )
-          const diasRestantes = Math.floor((utcCaducidad - utcHoy) / MS_POR_DIA)
-
-          return { v, fechaCaducidad, diasRestantes }
-        })
-        .filter(({ diasRestantes }) => diasRestantes <= DIAS_ALERTA_CADUCIDAD)
-        .map(({ v, fechaCaducidad, diasRestantes }) => ({
-          id: `auto-caducidad-${v.id}`,
-          tipo: 'CADUCIDAD_PROXIMA' as const,
-          leida: false,
-          createdAt: v.updatedAt.toISOString(),
-          diasRestantes,
-          fechaCaducidad: fechaCaducidad.toISOString(),
-          variante: {
-            id: v.id,
-            sku: v.sku,
-            nombreVariante: v.nombreVariante || 'Estándar',
-            stockActual: v.stockActual,
-            stockMinimo: v.stockMinimo,
-            producto: {
-              nombre: v.producto.nombre,
-              marca: v.producto.marca || null,
-            },
-          },
+        .map((v) => ({
+          v,
+          fechaCaducidad: v.fechaCaducidad as Date,
+          diasRestantes: diasRestantesHasta(v.fechaCaducidad as Date),
         }))
+        // Filtramos usando la variable dinámica de días
+        .filter(({ diasRestantes }) => diasRestantes <= diasAlertaCaducidad)
+        .map(({ v, fechaCaducidad, diasRestantes }) => {
+          // CA01: sobrestock (más del triple del mínimo) y caduca dentro del umbral configurado por el tenant
+          const sugerirPromocion =
+            v.stockActual > v.stockMinimo * 3 &&
+            diasRestantes < diasAlertaCaducidad
+
+          return {
+            id: `auto-caducidad-${v.id}`,
+            tipo: 'CADUCIDAD_PROXIMA' as const,
+            leida: v.alertaLeida,
+            createdAt: v.updatedAt.toISOString(),
+            diasRestantes,
+            fechaCaducidad: fechaCaducidad.toISOString(),
+            sugerirPromocion, // Enviamos la bandera al frontend
+            variante: {
+              id: v.id,
+              sku: v.sku,
+              nombreVariante: v.nombreVariante || 'Estándar',
+              stockActual: v.stockActual, // CA02: Stock actual enviado
+              stockMinimo: v.stockMinimo,
+              producto: {
+                nombre: v.producto.nombre,
+                marca: v.producto.marca || null,
+              },
+            },
+          }
+        })
 
       const alertas: any[] = [...alertasCaducidad, ...alertasStock]
 
@@ -120,8 +144,13 @@ export async function alertRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string }
 
       // Las alertas de caducidad son calculadas, no existen como fila en la
-      // tabla `alertas`: no hay nada que persistir, solo confirmamos al cliente.
+      // tabla `alertas`: persistimos su lectura en VarianteProducto.alertaLeida.
       if (id.startsWith('auto-caducidad-')) {
+        const varianteId = id.slice('auto-caducidad-'.length)
+        await prisma.varianteProducto.updateMany({
+          where: { id: varianteId, tenantId: request.tenantId },
+          data: { alertaLeida: true },
+        })
         return reply.send(successResponse({ id, leida: true }))
       }
 
@@ -142,10 +171,39 @@ export async function alertRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const { tenantId } = request
 
-      const result = await prisma.alerta.updateMany({
-        where: { tenantId, leida: false },
-        data: { leida: true },
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { umbralDiasCaducidad: true },
       })
+      const diasAlertaCaducidad = tenant?.umbralDiasCaducidad ?? 30
+
+      const variantesConCaducidadPendiente =
+        await prisma.varianteProducto.findMany({
+          where: {
+            tenantId,
+            fechaCaducidad: { not: null },
+            alertaLeida: false,
+          },
+          select: { id: true, fechaCaducidad: true },
+        })
+
+      const idsCaducidadAMarcar = variantesConCaducidadPendiente
+        .filter(
+          (v) =>
+            diasRestantesHasta(v.fechaCaducidad as Date) <= diasAlertaCaducidad
+        )
+        .map((v) => v.id)
+
+      const [result] = await prisma.$transaction([
+        prisma.alerta.updateMany({
+          where: { tenantId, leida: false },
+          data: { leida: true },
+        }),
+        prisma.varianteProducto.updateMany({
+          where: { tenantId, id: { in: idsCaducidadAMarcar } },
+          data: { alertaLeida: true },
+        }),
+      ])
 
       return reply.send(successResponse({ count: result.count }))
     }

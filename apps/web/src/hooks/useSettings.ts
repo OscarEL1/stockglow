@@ -5,11 +5,15 @@ import { fetchWithAuth } from '../lib/api'
 export interface StoreSettings {
   nombre: string
   logoUrl: string | null
+  umbralDiasCaducidad: number
+  stockMinimoGlobal: number
 }
 
 export interface UpdateSettingsData {
   nombre?: string
   logoUrl?: string | null
+  umbralDiasCaducidad?: number
+  stockMinimoGlobal?: number
 }
 
 export function useSettings() {
@@ -38,6 +42,7 @@ export function useUpdateSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
+      queryClient.invalidateQueries({ queryKey: ['alerts'] })
     },
   })
 }

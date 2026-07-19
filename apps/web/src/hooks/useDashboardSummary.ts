@@ -8,6 +8,8 @@ export interface DashboardSummary {
   totalValue: number
   totalAlerts: number
   totalVentasHoy: number
+  totalVentasMesActual: number
+  totalVentasMesAnterior: number
   disponibles: number
   stockBajo: number
   agotados: number

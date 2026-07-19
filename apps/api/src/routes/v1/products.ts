@@ -123,4 +123,96 @@ export async function productRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(updated))
     }
   )
+
+  // DELETE /api/v1/inventory/products/:id
+  fastify.delete(
+    '/:id',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+      const { tenantId, orgRole } = request
+
+      /*
+       * El frontend y backend utilizan el mismo rol de Clerk.
+       * Solo administradores de la organización pueden eliminar.
+       */
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      const product = await prisma.producto.findFirst({
+        where: {
+          id,
+          tenantId,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          variantes: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      })
+
+      if (!product) {
+        throw Errors.PRODUCT_NOT_FOUND()
+      }
+
+      const variantIds = product.variantes.map((variant) => variant.id)
+
+      const salesHistoryCount =
+        variantIds.length === 0
+          ? 0
+          : await prisma.detalleVenta.count({
+              where: {
+                varianteId: {
+                  in: variantIds,
+                },
+              },
+            })
+
+      if (salesHistoryCount > 0) {
+        throw Errors.PRODUCT_HAS_SALES()
+      }
+
+      await prisma.$transaction([
+        prisma.alerta.deleteMany({
+          where: {
+            tenantId,
+            varianteId: {
+              in: variantIds,
+            },
+          },
+        }),
+
+        prisma.movimientoStock.deleteMany({
+          where: {
+            tenantId,
+            varianteId: {
+              in: variantIds,
+            },
+          },
+        }),
+
+        prisma.producto.delete({
+          where: {
+            id: product.id,
+          },
+        }),
+      ])
+
+      return reply.send(
+        successResponse({
+          id: product.id,
+          nombre: product.nombre,
+          variantesEliminadas: variantIds.length,
+          message: 'Producto eliminado correctamente',
+        })
+      )
+    }
+  )
 }

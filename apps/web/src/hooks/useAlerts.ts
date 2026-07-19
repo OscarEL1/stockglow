@@ -7,9 +7,13 @@ export interface Alert {
   tipo: 'BAJO_STOCK' | 'CADUCIDAD_PROXIMA'
   leida: boolean
   createdAt: string
+  fechaCaducidad?: string
+  diasRestantes?: number
+  sugerirPromocion?: boolean
   variante: {
     nombreVariante: string
     sku: string
+    stockActual?: number
     producto: {
       nombre: string
     }

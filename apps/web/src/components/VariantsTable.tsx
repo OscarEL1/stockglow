@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useVariants, type Variant } from '../hooks/useVariants'
 import { useCategories } from '../hooks/useCategories'
+import { useArchiveVariant } from '../hooks/useArchiveVariant'
+import { useRole } from '../hooks/useRole'
 import {
+  Eye,
   History,
   Pencil,
   Trash2,
@@ -10,16 +13,56 @@ import {
   ChevronUp,
   ChevronDown,
   AlertTriangle,
+  ImageIcon,
+  CalendarClock,
+  ScanBarcode,
 } from 'lucide-react'
 import { VariantHistoryModal } from './VariantHistoryModal'
 import { EditVariantModal } from './EditVariantModal'
 import { AdjustStockModal } from './AdjustStockModal'
+import { VariantDetailModal } from './VariantDetailModal'
+import { BarcodeScannerModal } from './BarcodeScannerModal'
 
 type StockStatus = 'available' | 'low_stock' | 'out_of_stock'
 type SortField = 'name' | 'price' | 'stock'
 type SortDirection = 'asc' | 'desc'
 const ITEMS_PER_PAGE = 20
 const DIAS_ALERTA_CADUCIDAD = 30
+const DIAS_INACTIVIDAD_ALERTA = 60
+
+function InactividadBadge({ updatedAt }: { updatedAt: string }) {
+  if (!updatedAt) return null
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const ultimoMovimiento = new Date(updatedAt)
+  ultimoMovimiento.setHours(0, 0, 0, 0)
+
+  const diasTranscurridos = Math.floor(
+    (hoy.getTime() - ultimoMovimiento.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  // Solo se muestra si han pasado más de 60 días sin movimiento
+  if (diasTranscurridos <= DIAS_INACTIVIDAD_ALERTA) {
+    return null
+  }
+
+  const fechaFormateada = ultimoMovimiento.toLocaleDateString('es', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+
+  return (
+    <span
+      className="inline-flex items-center justify-center text-red-500 hover:text-red-700 transition-colors cursor-help"
+      title={`Última modificación: ${fechaFormateada}`}
+    >
+      <CalendarClock className="h-4 w-4" />
+    </span>
+  )
+}
 
 function CaducidadCell({ fechaCaducidad }: { fechaCaducidad: string | null }) {
   if (!fechaCaducidad) {
@@ -160,9 +203,13 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [detailVariant, setDetailVariant] = useState<Variant | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null)
   const [stockVariant, setStockVariant] = useState<Variant | null>(null)
+  const [variantToArchive, setVariantToArchive] = useState<Variant | null>(null)
+  const [showScanner, setShowScanner] = useState(false)
 
+  const { isAdmin } = useRole()
   const { data: categories = [] } = useCategories()
   const {
     data: variants = [],
@@ -170,6 +217,7 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
     isError,
     error,
   } = useVariants(categoria)
+  const { mutate: archiveVariant, isPending: isArchiving } = useArchiveVariant()
   const [historyVariant, setHistoryVariant] = useState<{
     id: string
     name: string
@@ -186,6 +234,39 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
 
     setSortField(field)
     setSortDirection('asc')
+  }
+
+  function handleConfirmArchive() {
+    if (!variantToArchive) return
+
+    archiveVariant(variantToArchive.id, {
+      onSuccess: () => {
+        onSuccess('Variante eliminada correctamente')
+        setVariantToArchive(null)
+      },
+      onError: (mutationError) => {
+        onError(
+          mutationError instanceof Error
+            ? mutationError.message
+            : 'No se pudo eliminar la variante'
+        )
+        setVariantToArchive(null)
+      },
+    })
+  }
+
+  function handleBarcodeDetected(code: string) {
+    setShowScanner(false)
+    const exists = variants.some(
+      (v) => v.sku?.toLowerCase() === code.toLowerCase()
+    )
+    if (!exists) {
+      onError('Producto no encontrado en el inventario')
+      return
+    }
+    setSearch(code)
+    setCurrentPage(1)
+    onSuccess('Producto encontrado')
   }
 
   const visibleVariants = useMemo(() => {
@@ -279,6 +360,14 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
             placeholder="Buscar producto, SKU o tono..."
             className="w-full flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
           />
+          <button
+            type="button"
+            onClick={() => setShowScanner(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:bg-pink-50 hover:text-pink-600 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"
+            title="Escanear código de barras"
+          >
+            <ScanBarcode className="h-5 w-5" />
+          </button>
           <select
             value={categoria}
             onChange={(e) => {
@@ -313,6 +402,9 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
             <table className="min-w-full border-collapse">
               <thead className="bg-pink-50/70">
                 <tr>
+                  <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Imagen
+                  </th>
                   <th
                     className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
                     aria-sort={
@@ -413,8 +505,26 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                   return (
                     <tr
                       key={variant.id}
-                      className="transition hover:bg-pink-50/40"
+                      className={`transition hover:bg-pink-50/40 ${
+                        search &&
+                        variant.sku?.toLowerCase() === search.toLowerCase()
+                          ? 'bg-yellow-50 border-l-4 border-yellow-400'
+                          : ''
+                      }`}
                     >
+                      <td className="px-4 py-4">
+                        {variant.imagenUrl ? (
+                          <img
+                            src={variant.imagenUrl}
+                            alt={variant.nombreVariante}
+                            className="h-12 w-12 rounded-xl object-cover border border-[#F1DDE5] shadow-sm"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-[#F1DDE5] bg-pink-50/50">
+                            <ImageIcon className="h-5 w-5 text-[#D9B4C7]" />
+                          </div>
+                        )}
+                      </td>
                       <td className="px-6 py-5">
                         <div className="text-sm font-semibold text-gray-900">
                           {variant.producto.nombre}
@@ -428,7 +538,10 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                       </td>
 
                       <td className="px-6 py-5 text-sm text-gray-900">
-                        {variant.nombreVariante}
+                        <div className="flex items-center gap-2">
+                          <span>{variant.nombreVariante}</span>
+                          <InactividadBadge updatedAt={variant.updatedAt} />
+                        </div>
                       </td>
 
                       <td className="px-6 py-5">
@@ -468,6 +581,16 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
 
                           <button
                             type="button"
+                            onClick={() => setDetailVariant(variant)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-violet-200 bg-white text-violet-600 shadow-sm transition hover:border-violet-400 hover:bg-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+                            title="Ver detalle"
+                            aria-label={`Ver detalle de ${variant.nombreVariante}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => setStockVariant(variant)}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                             title="Ajustar stock"
@@ -491,17 +614,17 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
                             <History className="h-4 w-4" />
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              console.log('Eliminar variante:', variant.id)
-                            }}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                            title="Eliminar variante"
-                            aria-label={`Eliminar ${variant.nombreVariante}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => setVariantToArchive(variant)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-500 shadow-sm transition hover:border-red-400 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                              title="Eliminar variante"
+                              aria-label={`Eliminar ${variant.nombreVariante}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -574,6 +697,14 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
         </div>
       )}
 
+      {detailVariant && (
+        <VariantDetailModal
+          key={detailVariant.id}
+          variant={detailVariant}
+          onClose={() => setDetailVariant(null)}
+        />
+      )}
+
       {selectedVariant && (
         <EditVariantModal
           key={selectedVariant.id}
@@ -589,6 +720,56 @@ export function VariantsTable({ statusFilter, onSuccess, onError }: Props) {
         onClose={() => setHistoryVariant(null)}
         variantId={historyVariant?.id || null}
         variantName={historyVariant?.name}
+      />
+
+      {variantToArchive && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="archive-variant-title"
+        >
+          <div className="w-full max-w-[480px] rounded-[28px] bg-white px-10 py-9 shadow-2xl">
+            <h2
+              id="archive-variant-title"
+              className="text-xl font-extrabold leading-tight text-[#2D2A32]"
+            >
+              Eliminar variante
+            </h2>
+            <p className="mt-4 text-sm text-[#7A7480]">
+              ¿Estás seguro de que deseas eliminar{' '}
+              <span className="font-semibold text-[#2D2A32]">
+                {variantToArchive.nombreVariante}
+              </span>
+              ? Dejará de aparecer en el inventario, pero se conservará su
+              historial de ventas y movimientos.
+            </p>
+            <div className="mt-8 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setVariantToArchive(null)}
+                disabled={isArchiving}
+                className="h-12 min-w-[130px] rounded-2xl bg-gray-200 px-6 text-sm font-bold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmArchive}
+                disabled={isArchiving}
+                className="h-12 min-w-[130px] rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isArchiving ? 'Eliminando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <BarcodeScannerModal
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onDetected={handleBarcodeDetected}
       />
     </section>
   )

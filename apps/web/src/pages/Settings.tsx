@@ -41,6 +41,16 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
   const [nombre, setNombre] = useState(settings.nombre)
   const [nombreError, setNombreError] = useState('')
 
+  const [umbralDiasCaducidad, setUmbralDiasCaducidad] = useState(
+    settings.umbralDiasCaducidad
+  )
+  const [umbralError, setUmbralError] = useState('')
+
+  const [stockMinimoGlobal, setStockMinimoGlobal] = useState(
+    settings.stockMinimoGlobal
+  )
+  const [stockMinimoError, setStockMinimoError] = useState('')
+
   const [currentLogoUrl, setCurrentLogoUrl] = useState(settings.logoUrl)
   const [logoRemoved, setLogoRemoved] = useState(false)
   const [showLogoInput, setShowLogoInput] = useState(!settings.logoUrl)
@@ -54,13 +64,36 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    let hasError = false
 
     if (!nombre.trim()) {
       setNombreError('El nombre de la tienda es obligatorio')
-      return
+      hasError = true
+    } else {
+      setNombreError('')
     }
 
-    setNombreError('')
+    if (isNaN(umbralDiasCaducidad) || umbralDiasCaducidad < 1) {
+      setUmbralError('El umbral debe ser de al menos 1 día')
+      hasError = true
+    } else {
+      setUmbralError('')
+    }
+
+    if (
+      isNaN(stockMinimoGlobal) ||
+      !Number.isInteger(stockMinimoGlobal) ||
+      stockMinimoGlobal < 0
+    ) {
+      setStockMinimoError(
+        'El stock mínimo global debe ser un número entero mayor o igual a 0'
+      )
+      hasError = true
+    } else {
+      setStockMinimoError('')
+    }
+
+    if (hasError) return
 
     let finalLogoUrl: string | null | undefined = undefined
 
@@ -79,7 +112,12 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
     }
 
     mutate(
-      { nombre: nombre.trim(), logoUrl: finalLogoUrl },
+      {
+        nombre: nombre.trim(),
+        logoUrl: finalLogoUrl,
+        umbralDiasCaducidad: Math.floor(umbralDiasCaducidad),
+        stockMinimoGlobal: Math.floor(stockMinimoGlobal),
+      },
       {
         onSuccess: () => {
           onSuccess('Configuración guardada correctamente')
@@ -149,6 +187,73 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
         />
         {nombreError && (
           <p className="mt-2 text-sm font-medium text-red-600">{nombreError}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+          Anticipación de alertas de caducidad (días)
+        </label>
+        <input
+          type="number"
+          min="1"
+          value={isNaN(umbralDiasCaducidad) ? '' : umbralDiasCaducidad}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10)
+            setUmbralDiasCaducidad(val)
+            if (!isNaN(val) && val >= 1) setUmbralError('')
+          }}
+          className={`h-14 w-full rounded-2xl border bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:ring-4 ${
+            umbralError
+              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+              : 'border-[#F1DDE5] focus:border-[#E85D8C] focus:ring-[#E85D8C]/10'
+          }`}
+        />
+        <p className="mt-1 text-[11px] text-[#8F8795]">
+          Configura con cuántos días de anticipación quieres que aparezcan los
+          productos en tu panel de alertas.
+        </p>
+        {umbralError && (
+          <p className="mt-2 text-sm font-medium text-red-600">{umbralError}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+          Stock mínimo global
+        </label>
+
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={isNaN(stockMinimoGlobal) ? '' : stockMinimoGlobal}
+          onChange={(e) => {
+            const rawValue = e.target.value
+            const value = rawValue === '' ? Number.NaN : Number(rawValue)
+
+            setStockMinimoGlobal(value)
+
+            if (Number.isInteger(value) && value >= 0) {
+              setStockMinimoError('')
+            }
+          }}
+          className={`h-14 w-full rounded-2xl border bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:ring-4 ${
+            stockMinimoError
+              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+              : 'border-[#F1DDE5] focus:border-[#E85D8C] focus:ring-[#E85D8C]/10'
+          }`}
+        />
+
+        <p className="mt-1 text-[11px] text-[#8F8795]">
+          Este valor se aplicará por defecto únicamente a las variantes nuevas.
+          Las variantes existentes conservarán su stock mínimo actual.
+        </p>
+
+        {stockMinimoError && (
+          <p className="mt-2 text-sm font-medium text-red-600">
+            {stockMinimoError}
+          </p>
         )}
       </div>
 
@@ -358,7 +463,8 @@ export function Settings() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[#2D2A32]">Configuración</h1>
         <p className="mt-1 text-[#7A7480]">
-          Personaliza el nombre, el logo y las categorías de tu tienda.
+          Personaliza la información, alertas, stock mínimo y categorías de tu
+          tienda.
         </p>
       </div>
 

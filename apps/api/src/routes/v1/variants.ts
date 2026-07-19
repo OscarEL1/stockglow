@@ -24,14 +24,29 @@ export async function variantRoutes(fastify: FastifyInstance) {
 
       if (existing) throw Errors.SKU_ALREADY_EXISTS()
 
+      const tenant = await prisma.tenant.findUnique({
+        where: {
+          id: request.tenantId,
+        },
+        select: {
+          stockMinimoGlobal: true,
+        },
+      })
+
+      if (!tenant) {
+        throw new Error('No existe la configuración de la tienda')
+      }
+
+      const { fechaCaducidad, stockMinimo, ...variantData } = input
+
       const variant = await prisma.varianteProducto.create({
         data: {
           tenantId: request.tenantId,
-          ...input,
-          precioVenta: input.precioVenta,
-          fechaCaducidad: input.fechaCaducidad
-            ? new Date(input.fechaCaducidad)
-            : null,
+          ...variantData,
+
+          stockMinimo: stockMinimo ?? tenant.stockMinimoGlobal,
+
+          fechaCaducidad: fechaCaducidad ? new Date(fechaCaducidad) : null,
         },
       })
 
@@ -51,6 +66,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       const variants = await prisma.varianteProducto.findMany({
         where: {
           tenantId: request.tenantId,
+          activo: true,
           ...(categoria && categoria !== 'Todas'
             ? { producto: { categoria } }
             : {}),
@@ -212,6 +228,34 @@ export async function variantRoutes(fastify: FastifyInstance) {
               : null,
           }),
         },
+        include: {
+          producto: true,
+        },
+      })
+
+      return reply.send(successResponse(updated))
+    }
+  )
+
+  // PATCH /api/v1/inventory/variants/:id/archive
+  fastify.patch(
+    '/:id/archive',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const variant = await prisma.varianteProducto.findFirst({
+        where: {
+          id: request.params.id,
+          tenantId: request.tenantId,
+        },
+      })
+
+      if (!variant) throw Errors.VARIANT_NOT_FOUND()
+
+      const updated = await prisma.varianteProducto.update({
+        where: { id: request.params.id },
+        data: { activo: false },
         include: {
           producto: true,
         },

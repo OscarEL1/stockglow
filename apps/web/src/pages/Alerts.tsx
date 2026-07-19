@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
-import { Check, Calendar } from 'lucide-react'
+import { Check, CheckCheck, Calendar } from 'lucide-react'
 
-interface Alerta {
+export interface Alerta {
   id: string
   tipo: 'BAJO_STOCK' | 'CADUCIDAD_PROXIMA'
   leida: boolean
   createdAt: string
   fechaCaducidad?: string
   diasRestantes?: number
+  sugerirPromocion?: boolean
   variante: {
     id: string
     sku: string
@@ -68,27 +69,37 @@ function AlertsTable({
                   {tipo === 'CADUCIDAD_PROXIMA' &&
                     fechaCaducidad &&
                     typeof diasRestantes === 'number' && (
-                      <div className="mt-1 inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
-                        <Calendar size={12} />
-                        Vence: {new Date(fechaCaducidad).toLocaleDateString()}
-                        <span
-                          className={
-                            esCaducado
-                              ? 'ml-1 font-bold text-red-600'
-                              : 'ml-1 text-orange-600'
-                          }
-                        >
-                          (
-                          {esCaducado
-                            ? diasRestantes === 0
-                              ? 'Vence hoy'
-                              : `Caducado hace ${Math.abs(diasRestantes)} días`
-                            : `Quedan ${diasRestantes} días`}
-                          )
-                        </span>
+                      <div className="mt-1 flex flex-col gap-1 items-start">
+                        <div className="inline-flex items-center gap-1 rounded bg-gray-50 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                          <Calendar size={12} />
+                          Vence: {new Date(fechaCaducidad).toLocaleDateString()}
+                          <span
+                            className={
+                              esCaducado
+                                ? 'ml-1 font-bold text-red-600'
+                                : 'ml-1 text-orange-600'
+                            }
+                          >
+                            (
+                            {esCaducado
+                              ? diasRestantes === 0
+                                ? 'Vence hoy'
+                                : `Caducado hace ${Math.abs(diasRestantes)} días`
+                              : `Quedan ${diasRestantes} días`}
+                            )
+                          </span>
+                        </div>
+
+                        {/*  CA01: Sugerencia de promoción si tiene sobrestock y vence pronto */}
+                        {alert.sugerirPromocion && (
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200 animate-pulse">
+                            📢 Considera hacer una promoción
+                          </div>
+                        )}
                       </div>
                     )}
                 </td>
+
                 <td className="px-4 py-4 text-gray-600">
                   {variante.nombreVariante}
                 </td>
@@ -145,6 +156,7 @@ function AlertsTable({
 export default function Alerts() {
   const [alerts, setAlerts] = useState<Alerta[]>([])
   const [loading, setLoading] = useState(true)
+  const [markingAll, setMarkingAll] = useState(false)
   const { getToken } = useAuth()
 
   useEffect(() => {
@@ -185,6 +197,25 @@ export default function Alerts() {
     }
   }
 
+  const handleMarkAllAsRead = async () => {
+    setMarkingAll(true)
+    try {
+      const token = await getToken()
+      const response = await fetch(`${API_URL}/mark-read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        setAlerts((prev) => prev.map((a) => ({ ...a, leida: true })))
+      }
+    } catch (error) {
+      console.error('Error al marcar todas las alertas como leídas:', error)
+    } finally {
+      setMarkingAll(false)
+    }
+  }
+
   const pending = alerts.filter((a) => !a.leida)
   const history = alerts.filter((a) => a.leida)
 
@@ -203,14 +234,27 @@ export default function Alerts() {
 
         {/* Pendientes */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-[#2D2A32]">
-            Pendientes
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#2D2A32]">
+              Pendientes
+              {pending.length > 0 && (
+                <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                  {pending.length}
+                </span>
+              )}
+            </h2>
+
             {pending.length > 0 && (
-              <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-                {pending.length}
-              </span>
+              <button
+                onClick={handleMarkAllAsRead}
+                disabled={markingAll}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-xs font-semibold text-[#7A7480] transition-colors hover:border-[#E85D8C] hover:bg-[#FFF8F9] hover:text-[#E85D8C] disabled:opacity-50"
+              >
+                <CheckCheck size={14} />
+                {markingAll ? 'Marcando...' : 'Marcar todas como leídas'}
+              </button>
             )}
-          </h2>
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-8">

@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useOrganization, useUser } from '@clerk/clerk-react'
 import { useRole } from '../hooks/useRole'
 import { useUpdateMemberRole } from '../hooks/useUpdateMemberRole'
+import { useRemoveMember } from '../hooks/useRemoveMember'
 import { useToast } from '../hooks/useToast'
 import { Toast } from '../components/Toast'
 import { Layout } from '../components/Layout'
+import { InviteMemberModal } from '../components/InviteMemberModal'
 
 function formatDate(date: Date): string {
   return new Intl.DateTimeFormat('es-MX', {
@@ -30,15 +32,30 @@ function RoleBadge({ role }: { role: string }) {
 }
 
 export function Users() {
-  const { isLoaded, memberships } = useOrganization({ memberships: true })
+  const { isLoaded, memberships, invitations } = useOrganization({
+    memberships: true,
+    invitations: true,
+  })
   const { user } = useUser()
   const { isAdmin } = useRole()
   const { updateRole } = useUpdateMemberRole()
   const { toast, showToast, hideToast } = useToast()
+  const { removeMember, isPending: isRemoving } = useRemoveMember(showToast)
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [memberToRemove, setMemberToRemove] = useState<{
+    userId: string
+    name: string
+  } | null>(null)
 
-  const isLoading = !isLoaded || (memberships?.isLoading ?? true)
+  const isLoading =
+    !isLoaded ||
+    (memberships?.isLoading ?? true) ||
+    (invitations?.isLoading ?? true)
   const members = memberships?.data ?? []
+  const pendingInvitations = (invitations?.data ?? []).filter(
+    (invitation) => invitation.status === 'pending'
+  )
 
   async function handleRoleChange(
     userId: string,
@@ -59,20 +76,40 @@ export function Users() {
     }
   }
 
+  async function handleConfirmRemove() {
+    if (!memberToRemove) return
+    try {
+      await removeMember(memberToRemove.userId)
+      setMemberToRemove(null)
+    } catch {
+      // El hook ya mostró el toast de error
+    }
+  }
+
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[#2D2A32]">Usuarios</h1>
-        <p className="mt-1 text-[#7A7480]">
-          Administración de personal y roles
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#2D2A32]">Usuarios</h1>
+          <p className="mt-1 text-[#7A7480]">
+            Administración de personal y roles
+          </p>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="h-11 rounded-2xl bg-[#E85D8C] px-5 text-sm font-bold text-white transition hover:bg-[#D94B7D]"
+          >
+            Invitar
+          </button>
+        )}
       </div>
 
       {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
         </div>
-      ) : members.length === 0 ? (
+      ) : members.length === 0 && pendingInvitations.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-pink-200 bg-white p-10 text-center">
           <p className="text-base font-semibold text-gray-900">
             No hay miembros en tu organización
@@ -99,6 +136,11 @@ export function Users() {
                   <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Fecha de ingreso
                   </th>
+                  {isAdmin && (
+                    <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Acciones
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -179,11 +221,107 @@ export function Users() {
                       <td className="px-6 py-5 text-sm text-gray-600">
                         {formatDate(member.createdAt)}
                       </td>
+                      {isAdmin && (
+                        <td className="px-6 py-5">
+                          <button
+                            onClick={() =>
+                              setMemberToRemove({
+                                userId: memberId,
+                                name: displayName,
+                              })
+                            }
+                            disabled={isCurrentUser}
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
+                {pendingInvitations.map((invitation) => (
+                  <tr
+                    key={invitation.id}
+                    className="transition hover:bg-pink-50/40"
+                  >
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-500">
+                          {invitation.emailAddress[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <span className="text-sm font-semibold text-gray-400">
+                          Invitación enviada
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-gray-600">
+                      {invitation.emailAddress}
+                    </td>
+                    <td className="px-6 py-5">
+                      <RoleBadge role={invitation.role} />
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                        Pendiente
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 text-sm text-gray-600">
+                      {formatDate(invitation.createdAt)}
+                    </td>
+                    {isAdmin && <td className="px-6 py-5" />}
+                  </tr>
+                ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {showInviteModal && (
+        <InviteMemberModal
+          onClose={() => setShowInviteModal(false)}
+          onInvited={() => invitations?.revalidate?.()}
+          showToast={showToast}
+        />
+      )}
+
+      {memberToRemove && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-member-title"
+        >
+          <div className="w-full max-w-[480px] rounded-[28px] bg-white px-10 py-9 shadow-2xl">
+            <h2
+              id="remove-member-title"
+              className="text-xl font-extrabold leading-tight text-[#2D2A32]"
+            >
+              Eliminar miembro
+            </h2>
+            <p className="mt-4 text-sm text-[#7A7480]">
+              ¿Estás seguro de que deseas eliminar a {memberToRemove.name} del
+              equipo? Esta acción revocará su acceso al sistema.
+            </p>
+            <div className="mt-8 flex justify-end gap-4">
+              <button
+                type="button"
+                onClick={() => setMemberToRemove(null)}
+                disabled={isRemoving}
+                className="h-12 min-w-[130px] rounded-2xl bg-gray-200 px-6 text-sm font-bold text-gray-700 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemove}
+                disabled={isRemoving}
+                className="h-12 min-w-[130px] rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isRemoving ? 'Eliminando...' : 'Confirmar'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -19,6 +19,13 @@ export const Errors = {
   // Inventario
   PRODUCT_NOT_FOUND: () =>
     new AppError('PRODUCT_NOT_FOUND', 'Producto no encontrado', 404),
+  PRODUCT_HAS_SALES: () =>
+    new AppError(
+      'PRODUCT_HAS_SALES',
+      'No se puede eliminar el producto porque tiene historial de ventas',
+      409
+    ),
+
   VARIANT_NOT_FOUND: () =>
     new AppError('VARIANT_NOT_FOUND', 'Variante no encontrada', 404),
   SKU_ALREADY_EXISTS: () =>
@@ -51,6 +58,12 @@ export const Errors = {
     new AppError('SALE_NOT_FOUND', 'Venta no encontrada', 404),
   SALE_ALREADY_CANCELLED: () =>
     new AppError('SALE_ALREADY_CANCELLED', 'La venta ya fue cancelada', 409),
+  DISCOUNT_EXCEEDS_SUBTOTAL: () =>
+    new AppError(
+      'DISCOUNT_EXCEEDS_SUBTOTAL',
+      'El descuento no puede superar el subtotal de la venta',
+      422
+    ),
 
   // General
   NOT_FOUND: (resource: string) =>

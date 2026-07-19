@@ -6,7 +6,8 @@ import { useProducts, type Product } from '../hooks/useProducts'
 import { useRole } from '../hooks/useRole'
 import { AddProductModal } from '../components/AddProductModal'
 import { EditProductModal } from '../components/EditProductModal'
-import { Pencil } from 'lucide-react'
+import { AlertTriangle, Pencil, Trash2 } from 'lucide-react'
+import { useDeleteProduct } from '../hooks/useDeleteProduct'
 
 export function Products() {
   const { data: products = [], isLoading, error } = useProducts()
@@ -16,6 +17,42 @@ export function Products() {
   const [search, setSearch] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showProductModal, setShowProductModal] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+
+  const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct()
+
+  function handleConfirmDelete() {
+    if (!productToDelete) return
+
+    deleteProduct(productToDelete.id, {
+      onSuccess: (response) => {
+        const deletedVariants =
+          response.data?.variantesEliminadas ??
+          productToDelete.variantes?.length ??
+          0
+
+        showToast(
+          `Producto eliminado correctamente. ${deletedVariants} variante${
+            deletedVariants === 1 ? '' : 's'
+          } eliminada${deletedVariants === 1 ? '' : 's'}.`,
+          'success'
+        )
+
+        setProductToDelete(null)
+      },
+
+      onError: (mutationError) => {
+        showToast(
+          mutationError instanceof Error
+            ? mutationError.message
+            : 'No se pudo eliminar el producto',
+          'error'
+        )
+
+        setProductToDelete(null)
+      },
+    })
+  }
 
   const filteredProducts = products.filter((product) => {
     const term = search.trim().toLowerCase()
@@ -170,7 +207,15 @@ export function Products() {
                               <Pencil size={17} />
                             </button>
 
-                            {/* TODO: HU-012 — Eliminar producto */}
+                            <button
+                              type="button"
+                              onClick={() => setProductToDelete(product)}
+                              title="Eliminar producto"
+                              aria-label={`Eliminar ${product.nombre}`}
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-500 transition hover:border-red-500 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
+                            >
+                              <Trash2 size={17} />
+                            </button>
                           </div>
                         </td>
                       )}
@@ -201,6 +246,76 @@ export function Products() {
             setShowProductModal(false)
           }}
         />
+      )}
+
+      {productToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-product-title"
+        >
+          <div className="w-full max-w-[520px] rounded-[28px] bg-white px-8 py-8 shadow-2xl sm:px-10 sm:py-9">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+
+              <div>
+                <h2
+                  id="delete-product-title"
+                  className="text-xl font-extrabold leading-tight text-[#2D2A32]"
+                >
+                  Eliminar producto
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-[#7A7480]">
+                  ¿Estás seguro de que deseas eliminar{' '}
+                  <span className="font-semibold text-[#2D2A32]">
+                    {productToDelete.nombre}
+                  </span>
+                  ?
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-[#7A7480]">
+                  También se eliminarán sus{' '}
+                  <span className="font-semibold text-[#2D2A32]">
+                    {productToDelete.variantes?.length ?? 0} variante
+                    {(productToDelete.variantes?.length ?? 0) === 1 ? '' : 's'}
+                  </span>
+                  .
+                </p>
+
+                <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-medium leading-5 text-red-700">
+                    Esta acción no se puede deshacer. Los productos con
+                    historial de ventas no pueden eliminarse.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setProductToDelete(null)}
+                disabled={isDeleting}
+                className="h-12 min-w-[130px] rounded-2xl border border-[#F1DDE5] bg-white px-6 text-sm font-bold text-[#2D2A32] transition hover:bg-[#FFF8F9] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={isDeleting}
+                className="h-12 min-w-[170px] rounded-2xl bg-red-600 px-6 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeleting ? 'Eliminando...' : 'Eliminar producto'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast.visible && (

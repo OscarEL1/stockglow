@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useCreateVariant } from '../hooks/useCreateVariant'
 import { useUploadImage } from '../hooks/useUploadImage'
+import { useSettings } from '../hooks/useSettings'
 
 interface Props {
   onClose: () => void
@@ -11,6 +12,7 @@ interface Props {
 
 export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
   const { data: products } = useProducts()
+  const { data: settings, isLoading: isLoadingSettings } = useSettings()
   const { mutate, isPending, error } = useCreateVariant()
 
   const [productoId, setProductoId] = useState('')
@@ -18,7 +20,8 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
   const [nombreVariante, setNombreVariante] = useState('')
   const [precioVenta, setPrecioVenta] = useState('')
   const [stockActual, setStockActual] = useState('0')
-  const [stockMinimo, setStockMinimo] = useState('5')
+  const [stockMinimo, setStockMinimo] = useState('')
+  const stockMinimoInitialized = useRef(false)
   const [fechaCaducidad, setFechaCaducidad] = useState('')
   const [imagenUrl, setImagenUrl] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -32,6 +35,17 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
 
     if (!productoId || !sku.trim() || !nombreVariante.trim() || !precioVenta)
       return
+
+    const parsedStockMinimo =
+      stockMinimo.trim() === '' ? undefined : Number(stockMinimo)
+
+    if (
+      parsedStockMinimo !== undefined &&
+      (!Number.isInteger(parsedStockMinimo) || parsedStockMinimo < 0)
+    ) {
+      onError('El stock mínimo debe ser un número entero mayor o igual a 0')
+      return
+    }
 
     let urlFinal = imagenUrl
 
@@ -55,9 +69,8 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
         nombreVariante: nombreVariante.trim(),
         precioVenta: Number(precioVenta),
         stockActual: Number(stockActual),
-        stockMinimo: Number(stockMinimo),
+        stockMinimo: parsedStockMinimo,
         imagenUrl: urlFinal || undefined,
-        // 🚀 AÑADE ESTA LÍNEA PARA MANDAR LA FECHA AL BACKEND:
         fechaCaducidad: fechaCaducidad || undefined,
       },
       {
@@ -82,6 +95,13 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
+
+  useEffect(() => {
+    if (!stockMinimoInitialized.current && settings) {
+      setStockMinimo(String(settings.stockMinimoGlobal))
+      stockMinimoInitialized.current = true
+    }
+  }, [settings])
 
   useEffect(() => {
     return () => {
@@ -201,10 +221,15 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
                 value={stockMinimo}
                 onChange={(e) => setStockMinimo(e.target.value)}
                 min="0"
-                className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                step="1"
+                disabled={isLoadingSettings}
+                className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10 disabled:cursor-wait disabled:bg-gray-50"
               />
+
               <p className="mt-2 text-[11px] text-[#8F8795]">
-                Cantidad mínima para bajo stock.
+                {isLoadingSettings
+                  ? 'Cargando el valor predeterminado de la tienda...'
+                  : 'Se precarga con el stock mínimo global. Puedes cambiarlo solo para esta variante.'}
               </p>
             </div>
 

@@ -13,10 +13,11 @@ export interface SaleDetalle {
 export interface Sale {
   id: string
   total: string
+  descuento?: number
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'
   createdAt: string
   usuarioId: string
-  usuario?: { nombre: string }
+  usuario?: { nombre: string; rol?: string }
   detalles: SaleDetalle[]
 }
 
