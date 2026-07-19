@@ -21,7 +21,10 @@ import {
   PackageX,
   TrendingUp,
   TrendingDown,
+  FileUp,
 } from 'lucide-react'
+import { ImportInventoryModal } from '../components/ImportInventoryModal'
+import { useRole } from '../hooks/useRole'
 
 export function Dashboard() {
   const navigate = useNavigate()
@@ -35,6 +38,9 @@ export function Dashboard() {
   const { data: salesData, isLoading: salesLoading } = useSalesByDay()
   const [period, setPeriod] = useState<'week' | 'month'>('month')
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
+
+  const { isAdmin } = useRole()
+  const [isImportOpen, setIsImportOpen] = useState(false)
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
@@ -56,8 +62,21 @@ export function Dashboard() {
               Resumen en tiempo real del estado de tu inventario
             </p>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setIsImportOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#E85D8C] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#D94B7D] focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+              >
+                <FileUp className="h-4 w-4" />
+                Importar inventario
+              </button>
+            )}
+
             <button
+              type="button"
               onClick={() => setIsAlertsOpen(true)}
               className="relative inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
@@ -69,7 +88,9 @@ export function Dashboard() {
                 </span>
               )}
             </button>
+
             <button
+              type="button"
               onClick={handleRefresh}
               className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
             >
@@ -349,6 +370,11 @@ export function Dashboard() {
         {/* Category distribution pie chart */}
         <CategoryPieChart />
       </div>
+
+      <ImportInventoryModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+      />
 
       <AlertsPanel
         isOpen={isAlertsOpen}
