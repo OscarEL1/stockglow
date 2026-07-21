@@ -4,12 +4,14 @@ import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
 import { getTenantCategories } from '../../lib/categories.js'
+import { sanitizeText } from '../../utils/sanitize.js'
 
 const updateSettingsSchema = z.object({
   nombre: z
     .string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .optional(),
+    .optional()
+    .transform((value) => (value === undefined ? value : sanitizeText(value))),
   logoUrl: z.string().url('URL de logo inválida').nullable().optional(),
   umbralDiasCaducidad: z
     .number()
@@ -24,7 +26,11 @@ const updateSettingsSchema = z.object({
 })
 
 const createCategorySchema = z.object({
-  nombre: z.string().min(1, 'El nombre de la categoría es requerido').max(50),
+  nombre: z
+    .string()
+    .min(1, 'El nombre de la categoría es requerido')
+    .max(50)
+    .transform(sanitizeText),
 })
 
 export async function settingsRoutes(fastify: FastifyInstance) {
