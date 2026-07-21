@@ -53,7 +53,7 @@ export function Dashboard() {
     <Layout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-[#2D2A32]">
               Dashboard
@@ -63,12 +63,12 @@ export function Dashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
             {isAdmin && (
               <button
                 type="button"
                 onClick={() => setIsImportOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#E85D8C] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#D94B7D] focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#E85D8C] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#D94B7D] md:w-auto"
               >
                 <FileUp className="h-4 w-4" />
                 Importar inventario
@@ -78,7 +78,7 @@ export function Dashboard() {
             <button
               type="button"
               onClick={() => setIsAlertsOpen(true)}
-              className="relative inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+              className="relative inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 md:w-auto"
             >
               <Bell className="h-4 w-4" />
               Alertas
@@ -92,7 +92,7 @@ export function Dashboard() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 md:w-auto"
             >
               <RefreshCcw className="h-4 w-4" />
               Actualizar
