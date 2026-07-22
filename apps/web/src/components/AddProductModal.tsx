@@ -41,8 +41,8 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
       aria-modal="true"
       aria-labelledby="add-product-title"
     >
-      <div className="flex min-h-full items-start justify-center p-4 md:items-center">
-        <div className="my-4 w-full max-w-[640px] rounded-3xl bg-white px-5 py-6 shadow-2xl md:rounded-[28px] md:px-10 md:py-9">
+      <div className="flex min-h-full items-start justify-center px-0 py-4 md:items-center md:p-4">
+        <div className="my-4 w-full max-w-[640px] rounded-none bg-white px-5 py-6 shadow-2xl md:rounded-[28px] md:px-10 md:py-9">
           <div className="mb-6 md:mb-8">
             <h2
               id="add-product-title"

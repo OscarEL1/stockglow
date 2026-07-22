@@ -16,7 +16,8 @@
       "Bash(echo \"LINT EXIT: $?\")",
       "Bash(echo \"LINT API EXIT: $?\")",
       "Bash(git fetch *)",
-      "Bash(pnpm -r lint)"
+      "Bash(pnpm -r lint)",
+      "Bash(pnpm build *)"
     ]
   }
 }

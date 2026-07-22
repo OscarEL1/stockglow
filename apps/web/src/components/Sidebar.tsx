@@ -69,18 +69,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Fondo oscuro */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 xl:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col border-r border-gray-100 bg-white transition-transform duration-300 xl:static xl:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Botón cerrar */}
-        <div className="flex justify-end p-3 lg:hidden">
+        <div className="flex justify-end p-3 xl:hidden">
           <button
             onClick={onClose}
             className="rounded-lg p-2 hover:bg-gray-100"
@@ -90,7 +90,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 pb-6">
+        <div className="flex items-center gap-3 px-5 pb-6 xl:pt-6">
           <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#FDE8F0]">
             {settings?.logoUrl ? (
               <img
