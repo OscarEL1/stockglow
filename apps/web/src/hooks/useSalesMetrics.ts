@@ -9,10 +9,15 @@ export interface SalesPeriodMetric {
   fechaFin: string
 }
 
+export interface SalesMonthMetric extends SalesPeriodMetric {
+  montoMesAnterior: number
+  porcentajeCambio: number
+}
+
 export interface SalesMetrics {
   hoy: SalesPeriodMetric
   semana: SalesPeriodMetric
-  mes: SalesPeriodMetric
+  mes: SalesMonthMetric
 }
 
 export function useSalesMetrics() {
