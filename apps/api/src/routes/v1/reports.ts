@@ -1,9 +1,88 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
+import {
+  calcPercentageChange,
+  getSalesPeriodRanges,
+} from '../../utils/dateRanges.js'
 import { Errors } from '../../lib/errors.js'
 
+const SALES_METRICS_PERIODS = ['hoy', 'semana', 'mes'] as const
+
+
 export async function reportsRoutes(fastify: FastifyInstance) {
+  // GET /api/v1/reports/sales-metrics
+  fastify.get(
+    '/sales-metrics',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+      const ranges = getSalesPeriodRanges()
+
+      const [aggregates, mesAnteriorAggregate] = await Promise.all([
+        Promise.all(
+          SALES_METRICS_PERIODS.map((period) =>
+            prisma.venta.aggregate({
+              where: {
+                tenantId,
+                estado: 'COMPLETADA',
+                createdAt: {
+                  gte: ranges[period].start,
+                  lte: ranges[period].end,
+                },
+              },
+              _sum: { total: true },
+              _count: { _all: true },
+            })
+          )
+        ),
+        prisma.venta.aggregate({
+          where: {
+            tenantId,
+            estado: 'COMPLETADA',
+            createdAt: {
+              gte: ranges.mesAnterior.start,
+              lte: ranges.mesAnterior.end,
+            },
+          },
+          _sum: { total: true },
+        }),
+      ])
+
+      const montoMesAnterior = Number(mesAnteriorAggregate._sum.total || 0)
+
+      const data = Object.fromEntries(
+        SALES_METRICS_PERIODS.map((period, i) => {
+          const montoTotal = Number(aggregates[i]._sum.total || 0)
+          const base = {
+            numeroVentas: aggregates[i]._count._all,
+            montoTotal,
+            fechaInicio: ranges[period].start.toISOString(),
+            fechaFin: ranges[period].end.toISOString(),
+          }
+
+          if (period !== 'mes') return [period, base]
+
+          return [
+            period,
+            {
+              ...base,
+              montoMesAnterior,
+              porcentajeCambio: calcPercentageChange(
+                montoTotal,
+                montoMesAnterior
+              ),
+            },
+          ]
+        })
+      )
+
+      return reply.send(successResponse(data))
+    }
+  )
+
   // GET /api/v1/reports/sales-by-day
   fastify.get(
     '/sales-by-day',

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useVariants } from '../hooks/useVariants'
 import { useSales } from '../hooks/useSales'
 import type { Sale } from '../hooks/useSales'
@@ -25,6 +26,18 @@ const ESTADO_STYLES: Record<Sale['estado'], string> = {
 }
 
 const PAGE_SIZE = 20
+
+const PERIOD_LABELS: Record<string, string> = {
+  hoy: 'Hoy',
+  semana: 'Esta semana',
+  mes: 'Este mes',
+}
+
+interface PeriodFilter {
+  periodo: string
+  start: Date
+  end: Date
+}
 
 function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('es-MX', {
@@ -259,6 +272,7 @@ export function Sales() {
   const { data: variants = [] } = useVariants()
   const { data: sales = [], isLoading: loadingSales } = useSales()
   const createSale = useCreateSale()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
@@ -270,7 +284,38 @@ export function Sales() {
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
 
+  // El rango exacto (desde/hasta) viene ya calculado por el backend en
+  // America/Mexico_City (GET /api/v1/reports/sales-metrics) y llega por
+  // query params — se deriva directo de la URL en cada render, sin
+  // recalcularlo aqui, para evitar que el filtro quede desfasado del
+  // monto que mostro la tarjeta del Dashboard.
+  const periodFilter = useMemo<PeriodFilter | null>(() => {
+    const periodo = searchParams.get('periodo')
+    const desde = searchParams.get('desde')
+    const hasta = searchParams.get('hasta')
+
+    if (periodo && desde && hasta) {
+      return { periodo, start: new Date(desde), end: new Date(hasta) }
+    }
+    return null
+  }, [searchParams])
+
+  function clearPeriodFilter() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('periodo')
+      next.delete('desde')
+      next.delete('hasta')
+      return next
+    })
+    setPage(1)
+  }
+
   const filteredSales = sales.filter((sale) => {
+    if (periodFilter) {
+      const fecha = new Date(sale.createdAt)
+      return fecha >= periodFilter.start && fecha <= periodFilter.end
+    }
     if (!fechaInicio && !fechaFin) return true
     const fecha = new Date(sale.createdAt)
     if (fechaInicio) {
@@ -566,56 +611,78 @@ export function Sales() {
             </button>
           </div>
           {/* Filtros de fecha */}
-          <div className="mb-4 flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Desde:
-              </label>
-              <input
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => {
-                  setFechaInicio(e.target.value)
-                  setPage(1)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Hasta:
-              </label>
-              <input
-                type="date"
-                value={fechaFin}
-                onChange={(e) => {
-                  setFechaFin(e.target.value)
-                  setPage(1)
-                }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
-              />
-            </div>
-            {(fechaInicio || fechaFin) && (
-              <>
+          {periodFilter ? (
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#E85D8C] bg-[#FDE8F0] px-4 py-1.5 text-sm font-semibold text-[#D94B7D]">
+                Filtrado por:{' '}
+                {PERIOD_LABELS[periodFilter.periodo] ?? periodFilter.periodo}
                 <button
-                  onClick={() => {
-                    setFechaInicio('')
-                    setFechaFin('')
+                  onClick={clearPeriodFilter}
+                  aria-label="Quitar filtro de período"
+                  className="text-[#D94B7D] hover:text-[#2D2A32]"
+                >
+                  ✕
+                </button>
+              </span>
+              <span className="text-sm text-gray-500">
+                {filteredSales.length}{' '}
+                {filteredSales.length === 1
+                  ? 'venta encontrada'
+                  : 'ventas encontradas'}
+              </span>
+            </div>
+          ) : (
+            <div className="mb-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Desde:
+                </label>
+                <input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => {
+                    setFechaInicio(e.target.value)
                     setPage(1)
                   }}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-[#F1DDE5] hover:bg-[#FFF8F9]"
-                >
-                  Limpiar filtros
-                </button>
-                <span className="text-sm text-gray-500">
-                  {filteredSales.length}{' '}
-                  {filteredSales.length === 1
-                    ? 'venta encontrada'
-                    : 'ventas encontradas'}
-                </span>
-              </>
-            )}
-          </div>
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Hasta:
+                </label>
+                <input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => {
+                    setFechaFin(e.target.value)
+                    setPage(1)
+                  }}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+                />
+              </div>
+              {(fechaInicio || fechaFin) && (
+                <>
+                  <button
+                    onClick={() => {
+                      setFechaInicio('')
+                      setFechaFin('')
+                      setPage(1)
+                    }}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:border-[#F1DDE5] hover:bg-[#FFF8F9]"
+                  >
+                    Limpiar filtros
+                  </button>
+                  <span className="text-sm text-gray-500">
+                    {filteredSales.length}{' '}
+                    {filteredSales.length === 1
+                      ? 'venta encontrada'
+                      : 'ventas encontradas'}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
 
           {loadingSales ? (
             <div className="flex justify-center py-8">
