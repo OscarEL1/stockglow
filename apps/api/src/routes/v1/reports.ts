@@ -120,4 +120,66 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(topProducts))
     }
   )
+  // GET /api/v1/reports/employees-ranking
+  fastify.get(
+    '/employees-ranking',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+
+      const startDate = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1
+      )
+
+      startDate.setHours(0, 0, 0, 0)
+
+      const ventas = await prisma.venta.findMany({
+        where: {
+          tenantId,
+          estado: 'COMPLETADA',
+          createdAt: {
+            gte: startDate,
+          },
+        },
+        include: {
+          usuario: true,
+        },
+      })
+
+      const ranking = ventas.reduce(
+        (acc, venta) => {
+          const usuarioId = venta.usuarioId
+
+          if (!acc[usuarioId]) {
+            acc[usuarioId] = {
+              usuarioId,
+              nombre: venta.usuario.nombre,
+              ventas: 0,
+              montoTotal: 0,
+            }
+          }
+
+          acc[usuarioId].ventas += 1
+          acc[usuarioId].montoTotal += Number(venta.total)
+
+          return acc
+        },
+        {} as Record<string, any>
+      )
+
+      const result = Object.values(ranking).sort((a, b) => {
+        if (b.ventas !== a.ventas) {
+          return b.ventas - a.ventas
+        }
+
+        return b.montoTotal - a.montoTotal
+      })
+
+      return reply.send(successResponse(result))
+    }
+  )
 }

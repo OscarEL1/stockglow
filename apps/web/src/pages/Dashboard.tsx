@@ -5,12 +5,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Layout } from '../components/Layout'
 import { AlertsPanel } from '../components/AlertsPanel'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
-import { useSalesByDay, useTopProducts } from '../hooks/useReports'
+import {
+  useSalesByDay,
+  useTopProducts,
+  useEmployeesRanking,
+} from '../hooks/useReports'
 import { useAlerts } from '../hooks/useAlerts'
 import { useStockWebSocket } from '../hooks/useStockWebSocket'
 import { SalesChart } from '../components/SalesChart'
 import { TopProductsList } from '../components/TopProductsList'
 import { CategoryPieChart } from '../components/CategoryPieChart'
+import { EmployeesRanking } from '../components/EmployeesRanking'
 import {
   Package,
   DollarSign,
@@ -30,14 +35,22 @@ export function Dashboard() {
   const navigate = useNavigate()
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
+
   useStockWebSocket(organization?.id ?? null, queryClient)
 
   const [isAlertsOpen, setIsAlertsOpen] = useState(false)
+
   const { data: summary, isLoading, isError } = useDashboardSummary()
   const { data: alerts = [] } = useAlerts()
+
   const { data: salesData, isLoading: salesLoading } = useSalesByDay()
+
   const [period, setPeriod] = useState<'week' | 'month'>('month')
+
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
+
+  const { data: employeesRanking = [], isLoading: rankingLoading } =
+    useEmployeesRanking()
 
   const { isAdmin } = useRole()
   const [isImportOpen, setIsImportOpen] = useState(false)
@@ -46,6 +59,7 @@ export function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
     queryClient.invalidateQueries({ queryKey: ['salesByDay'] })
     queryClient.invalidateQueries({ queryKey: ['topProducts'] })
+    queryClient.invalidateQueries({ queryKey: ['employeesRanking'] })
     queryClient.invalidateQueries({ queryKey: ['alerts'] })
   }
 
@@ -368,7 +382,19 @@ export function Dashboard() {
         </div>
 
         {/* Category distribution pie chart */}
-        <CategoryPieChart />
+        {/* Category distribution + Ranking */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <CategoryPieChart />
+          </div>
+
+          <div>
+            <EmployeesRanking
+              employees={employeesRanking}
+              isLoading={rankingLoading}
+            />
+          </div>
+        </div>
       </div>
 
       <ImportInventoryModal
