@@ -6,6 +6,11 @@ import { AlertsPanel } from '../components/AlertsPanel'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
 import { useSalesByDay, useTopProducts } from '../hooks/useReports'
 import { useSalesMetrics } from '../hooks/useSalesMetrics'
+import {
+  useSalesByDay,
+  useTopProducts,
+  useEmployeesRanking,
+} from '../hooks/useReports'
 import { useAlerts } from '../hooks/useAlerts'
 import { useStockWebSocket } from '../hooks/useStockWebSocket'
 import { SalesChart } from '../components/SalesChart'
@@ -14,24 +19,50 @@ import { CategoryPieChart } from '../components/CategoryPieChart'
 import { SalesMetricsCards } from '../components/SalesMetricsCards'
 import { DashboardSummary } from '../components/DashboardSummary'
 import { RefreshCcw, Bell, FileUp } from 'lucide-react'
+import { EmployeesRanking } from '../components/EmployeesRanking'
+import {
+  Package,
+  DollarSign,
+  AlertTriangle,
+  RefreshCcw,
+  Bell,
+  CheckCircle2,
+  PackageX,
+  TrendingUp,
+  TrendingDown,
+  FileUp,
+} from 'lucide-react'
 import { ImportInventoryModal } from '../components/ImportInventoryModal'
 import { useRole } from '../hooks/useRole'
 
 export function Dashboard() {
   const { organization } = useOrganization()
   const queryClient = useQueryClient()
+
   useStockWebSocket(organization?.id ?? null, queryClient)
 
   const [isAlertsOpen, setIsAlertsOpen] = useState(false)
+
   const { data: summary, isLoading, isError } = useDashboardSummary()
   const { data: salesMetrics, isLoading: salesMetricsLoading } =
     useSalesMetrics()
   const { data: alerts = [] } = useAlerts()
+
   const { data: salesData, isLoading: salesLoading } = useSalesByDay()
+
   const [period, setPeriod] = useState<'week' | 'month'>('month')
+
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
 
   const { isAdmin } = useRole()
+  // El ranking expone el desempeño individual de cada empleada, por lo
+  // que solo la dueña (org:admin) puede verlo, igual que el resto de
+  // acciones sensibles del dashboard (ej. "Importar inventario").
+  const canViewRanking = isAdmin
+
+  const { data: employeesRanking = [], isLoading: rankingLoading } =
+    useEmployeesRanking(canViewRanking)
+
   const [isImportOpen, setIsImportOpen] = useState(false)
 
   const handleRefresh = () => {
@@ -39,6 +70,7 @@ export function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ['sales-metrics'] })
     queryClient.invalidateQueries({ queryKey: ['salesByDay'] })
     queryClient.invalidateQueries({ queryKey: ['topProducts'] })
+    queryClient.invalidateQueries({ queryKey: ['employeesRanking'] })
     queryClient.invalidateQueries({ queryKey: ['alerts'] })
   }
 
@@ -129,8 +161,21 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Category distribution pie chart */}
-        <CategoryPieChart />
+        {/* Category distribution + Ranking (ranking solo visible para la dueña, org:admin) */}
+        <div className={canViewRanking ? 'grid gap-6 lg:grid-cols-3' : ''}>
+          <div className={canViewRanking ? 'lg:col-span-2' : ''}>
+            <CategoryPieChart />
+          </div>
+
+          {canViewRanking && (
+            <div>
+              <EmployeesRanking
+                employees={employeesRanking}
+                isLoading={rankingLoading}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <ImportInventoryModal
