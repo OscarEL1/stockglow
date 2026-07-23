@@ -15,6 +15,13 @@ export interface TopProductItem {
   cantidadVendida: number
 }
 
+export interface EmployeeRankingItem {
+  usuarioId: string
+  nombre: string
+  ventas: number
+  montoTotal: number
+}
+
 export function useSalesByDay() {
   const { getToken } = useAuth()
 
@@ -22,6 +29,7 @@ export function useSalesByDay() {
     queryKey: ['salesByDay'],
     queryFn: async () => {
       const res = await fetchWithAuth(getToken, '/api/v1/reports/sales-by-day')
+
       return res.data as SalesByDayItem[]
     },
   })
@@ -37,7 +45,25 @@ export function useTopProducts(period: 'week' | 'month' = 'month') {
         getToken,
         `/api/v1/reports/top-products?period=${period}`
       )
+
       return res.data as TopProductItem[]
+    },
+  })
+}
+
+export function useEmployeesRanking(enabled = true) {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['employeesRanking'],
+    enabled,
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        '/api/v1/reports/employees-ranking'
+      )
+
+      return res.data as EmployeeRankingItem[]
     },
   })
 }
