@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Layout } from '../components/Layout'
 import { AlertsPanel } from '../components/AlertsPanel'
 import { useDashboardSummary } from '../hooks/useDashboardSummary'
-import { useSalesByDay, useTopProducts } from '../hooks/useReports'
 import { useSalesMetrics } from '../hooks/useSalesMetrics'
 import {
   useSalesByDay,
@@ -18,20 +17,8 @@ import { TopProductsList } from '../components/TopProductsList'
 import { CategoryPieChart } from '../components/CategoryPieChart'
 import { SalesMetricsCards } from '../components/SalesMetricsCards'
 import { DashboardSummary } from '../components/DashboardSummary'
-import { RefreshCcw, Bell, FileUp } from 'lucide-react'
 import { EmployeesRanking } from '../components/EmployeesRanking'
-import {
-  Package,
-  DollarSign,
-  AlertTriangle,
-  RefreshCcw,
-  Bell,
-  CheckCircle2,
-  PackageX,
-  TrendingUp,
-  TrendingDown,
-  FileUp,
-} from 'lucide-react'
+import { RefreshCcw, Bell, FileUp } from 'lucide-react'
 import { ImportInventoryModal } from '../components/ImportInventoryModal'
 import { useRole } from '../hooks/useRole'
 
