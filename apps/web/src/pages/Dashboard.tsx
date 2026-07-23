@@ -49,10 +49,15 @@ export function Dashboard() {
 
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
 
-  const { data: employeesRanking = [], isLoading: rankingLoading } =
-    useEmployeesRanking()
-
   const { isAdmin } = useRole()
+  // El ranking expone el desempeño individual de cada empleada, por lo
+  // que solo la dueña (org:admin) puede verlo, igual que el resto de
+  // acciones sensibles del dashboard (ej. "Importar inventario").
+  const canViewRanking = isAdmin
+
+  const { data: employeesRanking = [], isLoading: rankingLoading } =
+    useEmployeesRanking(canViewRanking)
+
   const [isImportOpen, setIsImportOpen] = useState(false)
 
   const handleRefresh = () => {
@@ -381,19 +386,20 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Category distribution pie chart */}
-        {/* Category distribution + Ranking */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        {/* Category distribution + Ranking (ranking solo visible para la dueña, org:admin) */}
+        <div className={canViewRanking ? 'grid gap-6 lg:grid-cols-3' : ''}>
+          <div className={canViewRanking ? 'lg:col-span-2' : ''}>
             <CategoryPieChart />
           </div>
 
-          <div>
-            <EmployeesRanking
-              employees={employeesRanking}
-              isLoading={rankingLoading}
-            />
-          </div>
+          {canViewRanking && (
+            <div>
+              <EmployeesRanking
+                employees={employeesRanking}
+                isLoading={rankingLoading}
+              />
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
+import { Errors } from '../../lib/errors.js'
 
 export async function reportsRoutes(fastify: FastifyInstance) {
   // GET /api/v1/reports/sales-by-day
@@ -127,8 +128,24 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       preHandler: [fastify.authenticate],
     },
     async (request: any, reply) => {
-      const tenantId = request.tenantId
+      const { tenantId, orgRole } = request
 
+      /*
+       * Esta vista expone el desempeño de ventas individual de cada
+       * empleada, por lo que solo la dueña (org:admin) puede consultarla
+       * — igual que el resto de acciones sensibles del dashboard (ej.
+       * "Importar inventario"). Una empleada no debe ver el ranking de
+       * sus compañeras.
+       */
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      // NOTA (deuda conocida, no tocar aquí): este rango de "mes" usa la
+      // hora local del proceso Node, igual que sales-by-day/top-products
+      // en este mismo archivo, en vez de America/Mexico_City. Se
+      // resolverá de forma centralizada cuando se mergee HU-072
+      // (getSalesPeriodRanges en utils/dateRanges.ts).
       const startDate = new Date(
         new Date().getFullYear(),
         new Date().getMonth(),
@@ -144,12 +161,28 @@ export async function reportsRoutes(fastify: FastifyInstance) {
           createdAt: {
             gte: startDate,
           },
+          // Solo vendedoras (EMPLOYEE) cuentan para el ranking; ventas
+          // registradas por OWNER/MANAGER quedan fuera.
+          usuario: {
+            rol: 'EMPLOYEE',
+          },
         },
         include: {
           usuario: true,
         },
       })
 
+      interface RankingEntry {
+        usuarioId: string
+        nombre: string
+        ventas: number
+        montoTotal: number
+      }
+
+      // Nota: una empleada sin ventas en el mes no aparece aquí (no se
+      // lista con 0) porque el ranking se construye iterando `ventas` ya
+      // filtradas por periodo; es el comportamiento acordado en el
+      // review de HU-066.
       const ranking = ventas.reduce(
         (acc, venta) => {
           const usuarioId = venta.usuarioId
@@ -168,9 +201,10 @@ export async function reportsRoutes(fastify: FastifyInstance) {
 
           return acc
         },
-        {} as Record<string, any>
+        {} as Record<string, RankingEntry>
       )
 
+      // CA02: desempate por monto total cuando el número de ventas coincide.
       const result = Object.values(ranking).sort((a, b) => {
         if (b.ventas !== a.ventas) {
           return b.ventas - a.ventas

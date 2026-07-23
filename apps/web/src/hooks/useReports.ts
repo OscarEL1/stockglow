@@ -51,11 +51,12 @@ export function useTopProducts(period: 'week' | 'month' = 'month') {
   })
 }
 
-export function useEmployeesRanking() {
+export function useEmployeesRanking(enabled = true) {
   const { getToken } = useAuth()
 
   return useQuery({
     queryKey: ['employeesRanking'],
+    enabled,
     queryFn: async () => {
       const res = await fetchWithAuth(
         getToken,
