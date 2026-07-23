@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { fetchWithAuth } from '../lib/api'
 
+export type ProductStatus = 'active' | 'archived'
+
 export interface ProductVariant {
   id: string
   productoId: string
@@ -21,17 +23,23 @@ export interface Product {
   marca: string | null
   categoria: string | null
   descripcion: string | null
+  activo: boolean
   createdAt: string
   variantes: ProductVariant[]
 }
 
-export function useProducts() {
+export function useProducts(status: ProductStatus = 'active') {
   const { getToken } = useAuth()
 
   return useQuery({
-    queryKey: ['products'],
+    queryKey: ['products', status],
+
     queryFn: async () => {
-      const res = await fetchWithAuth(getToken, '/api/v1/inventory/products')
+      const res = await fetchWithAuth(
+        getToken,
+        `/api/v1/inventory/products?status=${status}`
+      )
+
       return res.data as Product[]
     },
   })

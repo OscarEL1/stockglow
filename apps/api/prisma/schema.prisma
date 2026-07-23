@@ -62,11 +62,13 @@ model Producto {
   marca       String?  @db.VarChar(50)
   categoria   String?  @db.VarChar(50)
   descripcion String?  @db.Text
+  activo      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   variantes VarianteProducto[]
 
+  @@index([tenantId, activo])
   @@map("productos")
 }
 
