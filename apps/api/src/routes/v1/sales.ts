@@ -144,6 +144,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 usuarioId: internalUserId,
                 total,
                 descuento,
+                notas: input.notas,
                 estado: 'COMPLETADA',
                 detalles: {
                   create: detalles.map((d) => ({

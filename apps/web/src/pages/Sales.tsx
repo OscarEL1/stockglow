@@ -126,6 +126,17 @@ function SaleDetailModal({
           </p>
         )}
 
+        {sale.notas && (
+          <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-600">
+              Notas
+            </p>
+            <p className="whitespace-pre-wrap text-sm text-blue-900">
+              {sale.notas}
+            </p>
+          </div>
+        )}
+
         {/* Tabla de productos */}
         <div className="overflow-hidden rounded-xl border border-gray-200">
           <table className="w-full border-collapse text-sm">
@@ -278,6 +289,7 @@ export function Sales() {
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [search, setSearch] = useState('')
   const [descuento, setDescuento] = useState(0)
+  const [notas, setNotas] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
@@ -411,9 +423,11 @@ export function Sales() {
           cantidad: i.cantidad,
         })),
         descuento,
+        notas: notas.trim() || null,
       })
       setItems([])
       setDescuento(0)
+      setNotas('')
       setPage(1)
     } catch (err) {
       setError(
@@ -563,6 +577,25 @@ export function Sales() {
               Descuento: -${descuento.toFixed(2)}
             </p>
           )}
+
+          <div className="mb-4">
+            <label
+              htmlFor="notas"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Notas u observaciones{' '}
+              <span className="text-gray-400">(opcional)</span>
+            </label>
+            <textarea
+              id="notas"
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Nombre del cliente, instrucciones especiales..."
+              rows={2}
+              maxLength={500}
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            />
+          </div>
 
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold text-gray-900">
@@ -730,6 +763,26 @@ export function Sales() {
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
                           ${parseFloat(sale.total).toFixed(2)}
+                          {sale.notas && (
+                            <span
+                              title="Tiene nota"
+                              className="ml-1.5 inline-flex text-blue-400"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M7 8h10M7 12h6m-6 4h3M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"
+                                />
+                              </svg>
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span
