@@ -97,14 +97,15 @@ model VarianteProducto {
 }
 
 model Venta {
-  id        String      @id @default(uuid())
-  tenantId  String      @map("tenant_id")
-  usuarioId String      @map("usuario_id")
-  total     Decimal     @db.Decimal(10, 2)
-  descuento Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
-  notas     String?     @db.Text
-  estado    EstadoVenta @default(PENDIENTE)
-  createdAt DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  usuarioId   String      @map("usuario_id")
+  total       Decimal     @db.Decimal(10, 2)
+  descuento   Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
+  notas       String?     @db.Text
+  metodoPago  MetodoPago  @default(EFECTIVO) @map("metodo_pago")
+  estado      EstadoVenta @default(PENDIENTE)
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   usuario  Usuario        @relation(fields: [usuarioId], references: [id])
@@ -178,4 +179,10 @@ enum TipoMovimiento {
 enum TipoAlerta {
   BAJO_STOCK
   CADUCIDAD_PROXIMA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
 }
