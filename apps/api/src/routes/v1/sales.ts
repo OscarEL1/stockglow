@@ -145,6 +145,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 total,
                 descuento,
                 notas: input.notas,
+                metodoPago: input.metodoPago,
                 estado: 'COMPLETADA',
                 detalles: {
                   create: detalles.map((d) => ({
@@ -200,6 +201,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
         try {
           emitToTenant(tenantId, 'stock:update', {
             ventaId: venta.id,
+            metodoPago: venta.metodoPago,
             items: detalles.map((d) => ({
               varianteId: d.varianteId,
               sku: d.sku,

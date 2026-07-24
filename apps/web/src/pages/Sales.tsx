@@ -19,6 +19,14 @@ interface SaleItemLocal {
   stockActual: number
 }
 
+export type PaymentMethod = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA'
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  EFECTIVO: 'Efectivo',
+  TARJETA: 'Tarjeta',
+  TRANSFERENCIA: 'Transferencia',
+}
+
 const ESTADO_STYLES: Record<Sale['estado'], string> = {
   COMPLETADA: 'bg-green-100 text-green-700',
   PENDIENTE: 'bg-yellow-100 text-yellow-700',
@@ -96,13 +104,14 @@ function SaleDetailModal({
           </button>
         </div>
 
-        {/* Meta: estado + vendedor + total */}
+        {/* Meta: estado + vendedor + método de pago + total */}
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <span
             className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${ESTADO_STYLES[sale.estado]}`}
           >
             {sale.estado}
           </span>
+
           {sale.usuario && (
             <span className="text-sm text-[#7A7480]">
               Vendido por:{' '}
@@ -112,6 +121,14 @@ function SaleDetailModal({
               </span>
             </span>
           )}
+
+          <span className="text-sm text-[#7A7480]">
+            Método de pago:{' '}
+            <span className="font-medium text-[#2D2A32]">
+              {PAYMENT_METHOD_LABELS[sale.metodoPago]}
+            </span>
+          </span>
+
           <span className="ml-auto text-lg font-bold text-[#2D2A32]">
             Total:{' '}
             <span className="text-[#E85D8C]">
@@ -368,6 +385,8 @@ export function Sales() {
   const discountError =
     descuento > subtotal ? 'El descuento no puede ser mayor al total' : null
 
+  const [metodoPago, setMetodoPago] = useState<PaymentMethod>('EFECTIVO')
+
   function handleSelectVariant(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value
     if (!id) return
@@ -424,10 +443,12 @@ export function Sales() {
         })),
         descuento,
         notas: notas.trim() || null,
+        metodoPago,
       })
       setItems([])
       setDescuento(0)
       setNotas('')
+      setMetodoPago('EFECTIVO')
       setPage(1)
     } catch (err) {
       setError(
@@ -570,6 +591,26 @@ export function Sales() {
                 className="w-28 rounded-lg border border-gray-300 px-3 py-1.5 text-right text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
               />
             </div>
+          </div>
+
+          <div className="mb-4 flex flex-col gap-2 sm:max-w-xs">
+            <label
+              htmlFor="metodoPago"
+              className="text-sm font-medium text-gray-700"
+            >
+              Método de pago
+            </label>
+
+            <select
+              id="metodoPago"
+              value={metodoPago}
+              onChange={(e) => setMetodoPago(e.target.value as PaymentMethod)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            >
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+            </select>
           </div>
 
           {descuento > 0 && (
@@ -744,6 +785,9 @@ export function Sales() {
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Estado
                       </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Método de pago
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Vendedor
                       </th>
@@ -790,6 +834,9 @@ export function Sales() {
                           >
                             {sale.estado}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-gray-700">
+                          {PAYMENT_METHOD_LABELS[sale.metodoPago]}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           {sale.usuario?.nombre ?? '—'}

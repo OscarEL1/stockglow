@@ -1,0 +1,6 @@
+﻿CREATE TYPE "MetodoPago"
+AS ENUM ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA');
+
+ALTER TABLE "ventas"
+ADD COLUMN "metodo_pago" "MetodoPago"
+NOT NULL DEFAULT 'EFECTIVO';
