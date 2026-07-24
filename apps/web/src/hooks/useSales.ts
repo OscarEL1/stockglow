@@ -14,6 +14,7 @@ export interface Sale {
   id: string
   total: string
   descuento?: number
+  notas?: string | null
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'
   createdAt: string
   usuarioId: string

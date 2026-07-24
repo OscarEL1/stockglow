@@ -12,7 +12,11 @@ export function useCreateSale() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (data: { items: SaleItem[]; descuento?: number }) => {
+    mutationFn: async (data: {
+      items: SaleItem[]
+      descuento?: number
+      notas?: string | null
+    }) => {
       const res = await fetchWithAuth(getToken, '/api/v1/sales', {
         method: 'POST',
         body: JSON.stringify(data),
