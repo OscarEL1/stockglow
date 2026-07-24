@@ -23,7 +23,10 @@ export const security = fp(async (fastify) => {
         base.replace('https://', 'https://www.'),
         base.replace('https://www.', 'https://'),
       ]
-      if (!origin || allowed.includes(origin)) {
+      
+      const isLocalDev = env.NODE_ENV === 'development' && origin && origin.startsWith('http://localhost:')
+      
+      if (!origin || allowed.includes(origin) || isLocalDev) {
         cb(null, true)
       } else {
         cb(new Error('Not allowed by CORS'), false)
