@@ -8,6 +8,7 @@ export const saleItemSchema = z.object({
 export const createSaleSchema = z.object({
   items: z.array(saleItemSchema).min(1),
   descuento: z.number().nonnegative().optional(),
+  notas: z.string().optional().nullable(),
 })
 
 export type SaleItem = z.infer<typeof saleItemSchema>
