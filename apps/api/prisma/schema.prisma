@@ -83,6 +83,7 @@ model VarianteProducto {
   fechaCaducidad DateTime? @map("fecha_caducidad") @db.Date
   updatedAt      DateTime  @updatedAt @map("updated_at")
   alertaLeida    Boolean   @default(false) @map("alerta_leida")
+  activo         Boolean   @default(true)
 
   producto    Producto          @relation(fields: [productoId], references: [id], onDelete: Cascade)
   detalles    DetalleVenta[]

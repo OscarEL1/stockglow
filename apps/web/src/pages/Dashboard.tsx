@@ -184,41 +184,85 @@ export function Dashboard() {
               </p>
             </div>
 
-            {/* Card 4: Active Alerts */}
+            {/* Card 4: Ventas del Mes (HU-068) */}
             <div
-              role="button"
-              onClick={() => setIsAlertsOpen(true)}
-              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md cursor-pointer flex flex-col items-center text-center ${
-                summary.totalAlerts > 0
-                  ? 'border-yellow-200 bg-gradient-to-br from-yellow-50/40 to-white'
-                  : 'border-gray-100 bg-gradient-to-br from-gray-50/50 to-white'
+              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center ${
+                summary.totalVentasMesAnterior > 0
+                  ? summary.totalVentasMesActual >=
+                    summary.totalVentasMesAnterior
+                    ? 'border-green-100 bg-gradient-to-br from-green-50/50 to-white'
+                    : 'border-red-100 bg-gradient-to-br from-red-50/50 to-white'
+                  : 'border-blue-100 bg-gradient-to-br from-blue-50/50 to-white'
               }`}
             >
               <div
                 className={`rounded-xl p-3 mb-3 ${
-                  summary.totalAlerts > 0
-                    ? 'bg-yellow-100/70 text-yellow-700'
-                    : 'bg-gray-100 text-gray-400'
+                  summary.totalVentasMesAnterior > 0
+                    ? summary.totalVentasMesActual >=
+                      summary.totalVentasMesAnterior
+                      ? 'bg-green-100/60 text-green-600'
+                      : 'bg-red-100/60 text-red-600'
+                    : 'bg-blue-100/60 text-blue-600'
                 }`}
               >
-                <AlertTriangle className="h-6 w-6" />
+                {summary.totalVentasMesAnterior > 0 ? (
+                  summary.totalVentasMesActual >=
+                  summary.totalVentasMesAnterior ? (
+                    <TrendingUp className="h-6 w-6" />
+                  ) : (
+                    <TrendingDown className="h-6 w-6" />
+                  )
+                ) : (
+                  <DollarSign className="h-6 w-6" />
+                )}
               </div>
               <p
                 className={`text-xs font-semibold uppercase tracking-wider ${
-                  summary.totalAlerts > 0 ? 'text-yellow-700' : 'text-gray-500'
+                  summary.totalVentasMesAnterior > 0
+                    ? summary.totalVentasMesActual >=
+                      summary.totalVentasMesAnterior
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                    : 'text-blue-600'
                 }`}
               >
-                Alertas activas
+                Ventas del Mes
               </p>
               <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
-                {summary.totalAlerts}
+                $
+                {Number(summary.totalVentasMesActual).toLocaleString(
+                  undefined,
+                  {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }
+                )}
               </p>
-              <p className="mt-3 text-xs text-[#7A7480]">
-                Variantes con stock bajo
-              </p>
-              {alerts.length > 0 && (
-                <p className="mt-1 text-xs font-medium text-yellow-600">
-                  Ver alertas
+              {summary.totalVentasMesAnterior > 0 && (
+                <p
+                  className={`mt-3 text-xs font-medium ${
+                    summary.totalVentasMesActual >=
+                    summary.totalVentasMesAnterior
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}
+                >
+                  {summary.totalVentasMesActual >=
+                  summary.totalVentasMesAnterior
+                    ? '+'
+                    : ''}
+                  {(
+                    ((summary.totalVentasMesActual -
+                      summary.totalVentasMesAnterior) /
+                      summary.totalVentasMesAnterior) *
+                    100
+                  ).toFixed(1)}
+                  % vs mes ant.
+                </p>
+              )}
+              {summary.totalVentasMesAnterior === 0 && (
+                <p className="mt-3 text-xs text-[#7A7480]">
+                  Ingresos de este mes
                 </p>
               )}
             </div>

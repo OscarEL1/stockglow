@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
-import { Check, Calendar } from 'lucide-react'
+import { Check, CheckCheck, Calendar } from 'lucide-react'
 
 export interface Alerta {
   id: string
@@ -156,6 +156,7 @@ function AlertsTable({
 export default function Alerts() {
   const [alerts, setAlerts] = useState<Alerta[]>([])
   const [loading, setLoading] = useState(true)
+  const [markingAll, setMarkingAll] = useState(false)
   const { getToken } = useAuth()
 
   useEffect(() => {
@@ -196,6 +197,25 @@ export default function Alerts() {
     }
   }
 
+  const handleMarkAllAsRead = async () => {
+    setMarkingAll(true)
+    try {
+      const token = await getToken()
+      const response = await fetch(`${API_URL}/mark-read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const resData = await response.json()
+      if (resData.success) {
+        setAlerts((prev) => prev.map((a) => ({ ...a, leida: true })))
+      }
+    } catch (error) {
+      console.error('Error al marcar todas las alertas como leídas:', error)
+    } finally {
+      setMarkingAll(false)
+    }
+  }
+
   const pending = alerts.filter((a) => !a.leida)
   const history = alerts.filter((a) => a.leida)
 
@@ -214,14 +234,27 @@ export default function Alerts() {
 
         {/* Pendientes */}
         <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold text-[#2D2A32]">
-            Pendientes
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[#2D2A32]">
+              Pendientes
+              {pending.length > 0 && (
+                <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
+                  {pending.length}
+                </span>
+              )}
+            </h2>
+
             {pending.length > 0 && (
-              <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-600">
-                {pending.length}
-              </span>
+              <button
+                onClick={handleMarkAllAsRead}
+                disabled={markingAll}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-xs font-semibold text-[#7A7480] transition-colors hover:border-[#E85D8C] hover:bg-[#FFF8F9] hover:text-[#E85D8C] disabled:opacity-50"
+              >
+                <CheckCheck size={14} />
+                {markingAll ? 'Marcando...' : 'Marcar todas como leídas'}
+              </button>
             )}
-          </h2>
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-8">
