@@ -78,6 +78,7 @@ model VarianteProducto {
   nombreVariante String    @map("nombre_variante") @db.VarChar(100)
   imagenUrl      String?   @map("imagen_url")
   precioVenta    Decimal   @map("precio_venta") @db.Decimal(10, 2)
+  costoUnitario  Decimal?  @map("costo_unitario") @db.Decimal(10, 2)
   stockActual    Int       @default(0) @map("stock_actual")
   stockMinimo    Int       @default(5) @map("stock_minimo")
   fechaCaducidad DateTime? @map("fecha_caducidad") @db.Date
@@ -85,10 +86,11 @@ model VarianteProducto {
   alertaLeida    Boolean   @default(false) @map("alerta_leida")
   activo         Boolean   @default(true)
 
-  producto    Producto          @relation(fields: [productoId], references: [id], onDelete: Cascade)
-  detalles    DetalleVenta[]
-  movimientos MovimientoStock[]
-  alertas     Alerta[]
+  producto         Producto           @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  detalles         DetalleVenta[]
+  movimientos      MovimientoStock[]
+  alertas          Alerta[]
+  historialPrecios HistorialPrecio[]
 
   @@unique([tenantId, sku], name: "unique_sku_per_tenant")
   @@map("variantes_producto")
@@ -151,6 +153,18 @@ model Alerta {
   variante VarianteProducto @relation(fields: [varianteId], references: [id])
 
   @@map("alertas")
+}
+
+model HistorialPrecio {
+  id             String   @id @default(uuid())
+  varianteId     String   @map("variante_id")
+  precioAnterior Decimal  @map("precio_anterior") @db.Decimal(10, 2)
+  precioNuevo    Decimal  @map("precio_nuevo") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  variante VarianteProducto @relation(fields: [varianteId], references: [id], onDelete: Cascade)
+
+  @@map("historial_precios")
 }
 
 enum Rol {

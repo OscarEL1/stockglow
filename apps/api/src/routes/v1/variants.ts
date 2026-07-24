@@ -202,35 +202,56 @@ export async function variantRoutes(fastify: FastifyInstance) {
         if (skuExists) throw Errors.SKU_ALREADY_EXISTS()
       }
 
-      const updated = await prisma.varianteProducto.update({
-        where: {
-          id: request.params.id,
-        },
-        data: {
-          ...(input.sku !== undefined && {
-            sku: input.sku,
-          }),
-          ...(input.nombreVariante !== undefined && {
-            nombreVariante: input.nombreVariante,
-          }),
-          ...(input.imagenUrl !== undefined && {
-            imagenUrl: input.imagenUrl,
-          }),
-          ...(input.precioVenta !== undefined && {
-            precioVenta: input.precioVenta,
-          }),
-          ...(input.stockMinimo !== undefined && {
-            stockMinimo: input.stockMinimo,
-          }),
-          ...(input.fechaCaducidad !== undefined && {
-            fechaCaducidad: input.fechaCaducidad
-              ? new Date(input.fechaCaducidad)
-              : null,
-          }),
-        },
-        include: {
-          producto: true,
-        },
+      const updated = await prisma.$transaction(async (tx) => {
+        const updatedVariant = await tx.varianteProducto.update({
+          where: {
+            id: request.params.id,
+          },
+          data: {
+            ...(input.sku !== undefined && {
+              sku: input.sku,
+            }),
+            ...(input.nombreVariante !== undefined && {
+              nombreVariante: input.nombreVariante,
+            }),
+            ...(input.imagenUrl !== undefined && {
+              imagenUrl: input.imagenUrl,
+            }),
+            ...(input.precioVenta !== undefined && {
+              precioVenta: input.precioVenta,
+            }),
+            ...(input.costoUnitario !== undefined && {
+              costoUnitario: input.costoUnitario,
+            }),
+            ...(input.stockMinimo !== undefined && {
+              stockMinimo: input.stockMinimo,
+            }),
+            ...(input.fechaCaducidad !== undefined && {
+              fechaCaducidad: input.fechaCaducidad
+                ? new Date(input.fechaCaducidad)
+                : null,
+            }),
+          },
+          include: {
+            producto: true,
+          },
+        })
+
+        // HU-096: Registrar historial de precio si cambió
+        if (
+          input.precioVenta !== undefined &&
+          Number(input.precioVenta) !== Number(variant.precioVenta)
+        ) {
+          await tx.historialPrecio.create({
+            data: {
+              varianteId: request.params.id,
+              precioAnterior: variant.precioVenta,
+              precioNuevo: input.precioVenta,
+            },
+          })
+        }
+
+        return updatedVariant
       })
 
       return reply.send(successResponse(updated))
@@ -262,6 +283,28 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       return reply.send(successResponse(updated))
+    }
+  )
+
+  // GET /api/v1/inventory/variants/:id/price-history — HU-096
+  fastify.get(
+    '/:id/price-history',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const variant = await prisma.varianteProducto.findFirst({
+        where: { id: request.params.id, tenantId: request.tenantId },
+      })
+
+      if (!variant) throw Errors.VARIANT_NOT_FOUND()
+
+      const history = await prisma.historialPrecio.findMany({
+        where: { varianteId: request.params.id },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      return reply.send(successResponse(history))
     }
   )
 }

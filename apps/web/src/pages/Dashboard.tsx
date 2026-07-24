@@ -21,6 +21,7 @@ import {
   PackageX,
   TrendingUp,
   TrendingDown,
+  Percent,
 } from 'lucide-react'
 
 export function Dashboard() {
@@ -267,54 +268,50 @@ export function Dashboard() {
               )}
             </div>
 
-            {/* Card 5: Ventas del Mes (HU-068) */}
-            <div className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center ${
-              summary.totalVentasMesAnterior > 0 
-                ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
-                    ? 'border-green-100 bg-gradient-to-br from-green-50/50 to-white' 
-                    : 'border-red-100 bg-gradient-to-br from-red-50/50 to-white')
-                : 'border-blue-100 bg-gradient-to-br from-blue-50/50 to-white'
-            }`}>
-              <div className={`rounded-xl p-3 mb-3 ${
-                summary.totalVentasMesAnterior > 0 
-                  ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
-                      ? 'bg-green-100/60 text-green-600' 
-                      : 'bg-red-100/60 text-red-600')
-                  : 'bg-blue-100/60 text-blue-600'
-              }`}>
-                {summary.totalVentasMesAnterior > 0 ? (
-                  summary.totalVentasMesActual >= summary.totalVentasMesAnterior 
-                    ? <TrendingUp className="h-6 w-6" /> 
-                    : <TrendingDown className="h-6 w-6" />
-                ) : (
-                  <DollarSign className="h-6 w-6" />
-                )}
+            {/* Card 5: Rentabilidad promedio — HU-081 */}
+            <div
+              className={`relative overflow-hidden rounded-2xl border p-6 shadow-sm transition hover:shadow-md flex flex-col items-center text-center ${
+                summary.margenPromedio !== null
+                  ? summary.margenPromedio >= 30
+                    ? 'border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-white'
+                    : 'border-amber-100 bg-gradient-to-br from-amber-50/50 to-white'
+                  : 'border-gray-100 bg-gradient-to-br from-gray-50/50 to-white'
+              }`}
+            >
+              <div
+                className={`rounded-xl p-3 mb-3 ${
+                  summary.margenPromedio !== null
+                    ? summary.margenPromedio >= 30
+                      ? 'bg-emerald-100/60 text-emerald-600'
+                      : 'bg-amber-100/60 text-amber-600'
+                    : 'bg-gray-100/60 text-gray-500'
+                }`}
+              >
+                <Percent className="h-6 w-6" />
               </div>
-              <p className={`text-xs font-semibold uppercase tracking-wider ${
-                summary.totalVentasMesAnterior > 0 
-                  ? (summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? 'text-green-600' : 'text-red-600')
-                  : 'text-blue-600'
-              }`}>
-                Ventas del Mes
+              <p
+                className={`text-xs font-semibold uppercase tracking-wider ${
+                  summary.margenPromedio !== null
+                    ? summary.margenPromedio >= 30
+                      ? 'text-emerald-600'
+                      : 'text-amber-600'
+                    : 'text-gray-500'
+                }`}
+              >
+                Rentabilidad
               </p>
-              <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
-                $
-                {Number(summary.totalVentasMesActual).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-              {summary.totalVentasMesAnterior > 0 && (
-                <p className={`mt-3 text-xs font-medium ${
-                  summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {summary.totalVentasMesActual >= summary.totalVentasMesAnterior ? '+' : ''}
-                  {(((summary.totalVentasMesActual - summary.totalVentasMesAnterior) / summary.totalVentasMesAnterior) * 100).toFixed(1)}% vs mes ant.
-                </p>
-              )}
-              {summary.totalVentasMesAnterior === 0 && (
-                <p className="mt-3 text-xs text-[#7A7480]">
-                  Ingresos de este mes
+              {summary.margenPromedio !== null ? (
+                <>
+                  <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+                    {summary.margenPromedio.toFixed(1)}%
+                  </p>
+                  <p className="mt-3 text-xs text-[#7A7480]">
+                    Margen de ganancia promedio
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-xs text-[#7A7480] leading-relaxed">
+                  Agrega costos para ver la rentabilidad
                 </p>
               )}
             </div>

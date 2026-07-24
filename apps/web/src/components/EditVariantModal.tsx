@@ -45,6 +45,9 @@ export function EditVariantModal({
     variant.nombreVariante ?? ''
   )
   const [precioVenta, setPrecioVenta] = useState(variant.precioVenta ?? '')
+  const [costoUnitario, setCostoUnitario] = useState(
+    variant.costoUnitario ? String(Number(variant.costoUnitario)) : ''
+  )
   const [stockMinimo, setStockMinimo] = useState(
     String(variant.stockMinimo ?? 0)
   )
@@ -124,6 +127,7 @@ export function EditVariantModal({
           sku: sku.trim(),
           nombreVariante: nombreVariante.trim(),
           precioVenta: Number(precioVenta),
+          costoUnitario: costoUnitario ? Number(costoUnitario) : null,
           stockMinimo: Number(stockMinimo),
           fechaCaducidad: expirationDate,
           imagenUrl: finalImagenUrl,
@@ -302,6 +306,31 @@ export function EditVariantModal({
                   {precioError}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-variant-cost"
+                className="mb-2 block text-xs font-bold text-[#6F6875]"
+              >
+                Costo unitario
+                <span className="ml-1 font-normal text-[#9F9AA5]">(opcional)</span>
+              </label>
+
+              <input
+                id="edit-variant-cost"
+                type="number"
+                value={costoUnitario}
+                onChange={(e) => setCostoUnitario(e.target.value)}
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+              />
+
+              <p className="mt-2 text-[11px] text-[#8F8795]">
+                Usado para calcular el margen de ganancia.
+              </p>
             </div>
 
             <div>

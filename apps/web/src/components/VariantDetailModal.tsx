@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { Variant } from '../hooks/useVariants'
 import { useVariantMovements } from '../hooks/useVariantMovements'
+import { usePriceHistory } from '../hooks/usePriceHistory'
 import {
   X,
   ImageIcon,
@@ -9,6 +10,7 @@ import {
   ArrowUpFromLine,
   RefreshCcw,
   Package,
+  TrendingUp,
 } from 'lucide-react'
 
 interface Props {
@@ -177,6 +179,11 @@ export function VariantDetailModal({ variant, onClose }: Props) {
     isLoading,
     isError,
   } = useVariantMovements(variant.id)
+
+  const {
+    data: priceHistory = [],
+    isLoading: priceLoading,
+  } = usePriceHistory(variant.id)
 
   const stockActual = Number(variant.stockActual)
   const stockMinimo = Number(variant.stockMinimo)
@@ -410,6 +417,93 @@ export function VariantDetailModal({ variant, onClose }: Props) {
 
                         <p className="mt-0.5 text-xs text-gray-400">
                           {movement.usuario?.nombre || 'Usuario no disponible'}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* HU-096: Historial de precios */}
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-[#2D2A32]">
+                  Historial de precios
+                </h3>
+                <p className="mt-1 text-sm text-[#8F8795]">
+                  Evolución del precio de venta a lo largo del tiempo.
+                </p>
+              </div>
+              <TrendingUp className="h-5 w-5 text-[#E85D8C]" />
+            </div>
+
+            {priceLoading && (
+              <div className="flex justify-center rounded-2xl border border-gray-100 bg-gray-50 py-10">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-200 border-t-pink-500" />
+              </div>
+            )}
+
+            {!priceLoading && priceHistory.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+                <TrendingUp className="mx-auto h-6 w-6 text-gray-400" />
+                <p className="mt-3 text-sm font-medium text-gray-700">
+                  Sin cambios de precio registrados
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Los cambios de precio se registran automáticamente al guardar.
+                </p>
+              </div>
+            )}
+
+            {!priceLoading && priceHistory.length > 0 && (
+              <div className="relative space-y-0">
+                <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-pink-200 via-pink-100 to-transparent" />
+                {priceHistory.map((entry, index) => {
+                  const anterior = Number(entry.precioAnterior)
+                  const nuevo = Number(entry.precioNuevo)
+                  const subio = nuevo > anterior
+                  return (
+                    <div key={entry.id} className="relative flex gap-4 pb-4">
+                      <div className={`relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
+                        index === 0
+                          ? 'border-pink-300 bg-pink-50'
+                          : 'border-gray-200 bg-white'
+                      }`}>
+                        <TrendingUp className={`h-4 w-4 ${
+                          subio ? 'text-emerald-500' : 'text-red-400'
+                        } ${subio ? '' : 'rotate-180 transform'}`} />
+                      </div>
+                      <div className="flex flex-1 items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-gray-500 line-through">
+                              ${anterior.toFixed(2)}
+                            </span>
+                            <span className="text-gray-400">→</span>
+                            <span className={`text-sm font-bold ${
+                              subio ? 'text-emerald-600' : 'text-red-600'
+                            }`}>
+                              ${nuevo.toFixed(2)}
+                            </span>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              subio
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-red-50 text-red-700'
+                            }`}>
+                              {subio ? '+' : ''}{(((nuevo - anterior) / anterior) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                          {index === 0 && (
+                            <span className="mt-1 inline-flex items-center rounded-full bg-pink-50 px-2 py-0.5 text-xs font-semibold text-pink-600">
+                              Más reciente
+                            </span>
+                          )}
+                        </div>
+                        <p className="shrink-0 text-xs text-gray-400">
+                          {formatDateTime(entry.createdAt)}
                         </p>
                       </div>
                     </div>

@@ -13,6 +13,7 @@ export interface DashboardSummary {
   disponibles: number
   stockBajo: number
   agotados: number
+  margenPromedio: number | null
 }
 
 export function useDashboardSummary() {
