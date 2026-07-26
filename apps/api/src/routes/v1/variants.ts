@@ -234,6 +234,9 @@ export async function variantRoutes(fastify: FastifyInstance) {
           ...(input.precioVenta !== undefined && {
             precioVenta: input.precioVenta,
           }),
+          ...(input.costoAdquisicion !== undefined && {
+            costoAdquisicion: input.costoAdquisicion,
+          }),
           ...(input.stockMinimo !== undefined && {
             stockMinimo: input.stockMinimo,
           }),

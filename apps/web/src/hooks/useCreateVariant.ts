@@ -7,6 +7,7 @@ interface CreateVariantData {
   sku: string
   nombreVariante: string
   precioVenta: number
+  costoAdquisicion?: number
   stockActual: number
   stockMinimo?: number
   imagenUrl?: string

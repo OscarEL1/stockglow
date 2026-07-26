@@ -8,6 +8,7 @@ export interface Variant {
   sku: string
   nombreVariante: string
   precioVenta: string
+  costoAdquisicion: string | null
   stockActual: number
   stockMinimo: number
   imagenUrl: string | null

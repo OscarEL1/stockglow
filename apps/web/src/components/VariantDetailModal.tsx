@@ -182,6 +182,17 @@ export function VariantDetailModal({ variant, onClose }: Props) {
   const stockMinimo = Number(variant.stockMinimo)
   const precioVenta = Number(variant.precioVenta)
 
+  const costoAdquisicion =
+    variant.costoAdquisicion == null ? null : Number(variant.costoAdquisicion)
+
+  const costoValido =
+    costoAdquisicion !== null && Number.isFinite(costoAdquisicion)
+
+  const margenGanancia =
+    !costoValido || !Number.isFinite(precioVenta) || precioVenta <= 0
+      ? null
+      : ((precioVenta - costoAdquisicion) / precioVenta) * 100
+
   const stockInfo = getStockInfo(stockActual, stockMinimo)
   const expirationInfo = getExpirationInfo(variant.fechaCaducidad)
   const recentMovements = movements.slice(0, 10)
@@ -289,6 +300,24 @@ export function VariantDetailModal({ variant, onClose }: Props) {
                 <DetailItem
                   label="Precio de venta"
                   value={`$${precioVenta.toFixed(2)}`}
+                />
+
+                <DetailItem
+                  label="Costo de adquisición"
+                  value={
+                    !costoValido
+                      ? 'No registrado'
+                      : `$${costoAdquisicion.toFixed(2)}`
+                  }
+                />
+
+                <DetailItem
+                  label="Margen de ganancia"
+                  value={
+                    margenGanancia === null
+                      ? 'No disponible'
+                      : `${margenGanancia.toFixed(2)}%`
+                  }
                 />
 
                 <DetailItem

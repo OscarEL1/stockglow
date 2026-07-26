@@ -45,6 +45,10 @@ export function EditVariantModal({
     variant.nombreVariante ?? ''
   )
   const [precioVenta, setPrecioVenta] = useState(variant.precioVenta ?? '')
+  const [costoAdquisicion, setCostoAdquisicion] = useState(
+    variant.costoAdquisicion ?? ''
+  )
+  const [costoError, setCostoError] = useState('')
   const [stockMinimo, setStockMinimo] = useState(
     String(variant.stockMinimo ?? 0)
   )
@@ -73,6 +77,7 @@ export function EditVariantModal({
     setSkuError('')
     setNombreError('')
     setPrecioError('')
+    setCostoError('')
 
     if (!sku.trim()) {
       setSkuError('El código SKU es obligatorio')
@@ -88,6 +93,18 @@ export function EditVariantModal({
 
     if (!precioVenta || Number.isNaN(numericPrice) || numericPrice <= 0) {
       setPrecioError('Ingresa un precio válido mayor que cero')
+      isValid = false
+    }
+
+    const numericCost =
+      costoAdquisicion.trim() === '' ? null : Number(costoAdquisicion)
+
+    if (
+      numericCost !== null &&
+      (Number.isNaN(numericCost) || numericCost < 0)
+    ) {
+      setCostoError('Ingresa un costo válido mayor o igual a cero')
+
       isValid = false
     }
 
@@ -124,6 +141,8 @@ export function EditVariantModal({
           sku: sku.trim(),
           nombreVariante: nombreVariante.trim(),
           precioVenta: Number(precioVenta),
+          costoAdquisicion:
+            costoAdquisicion.trim() === '' ? null : Number(costoAdquisicion),
           stockMinimo: Number(stockMinimo),
           fechaCaducidad: expirationDate,
           imagenUrl: finalImagenUrl,
@@ -300,6 +319,49 @@ export function EditVariantModal({
               {precioError && (
                 <p className="mt-2 text-sm font-medium text-red-600">
                   {precioError}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-variant-cost"
+                className="mb-2 block text-xs font-bold text-[#6F6875]"
+              >
+                Costo de adquisición
+              </label>
+
+              <input
+                id="edit-variant-cost"
+                type="number"
+                value={costoAdquisicion}
+                onChange={(event) => {
+                  setCostoAdquisicion(event.target.value)
+
+                  if (
+                    event.target.value === '' ||
+                    Number(event.target.value) >= 0
+                  ) {
+                    setCostoError('')
+                  }
+                }}
+                min="0"
+                step="0.01"
+                placeholder="No registrado"
+                className={`h-14 w-full rounded-2xl border bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:ring-4 ${
+                  costoError
+                    ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+                    : 'border-[#F1DDE5] focus:border-[#E85D8C] focus:ring-[#E85D8C]/10'
+                }`}
+              />
+
+              {costoError ? (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  {costoError}
+                </p>
+              ) : (
+                <p className="mt-2 text-[11px] text-[#8F8795]">
+                  Déjalo vacío para eliminar el costo registrado.
                 </p>
               )}
             </div>

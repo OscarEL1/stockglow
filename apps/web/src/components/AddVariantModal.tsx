@@ -19,6 +19,7 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
   const [sku, setSku] = useState('')
   const [nombreVariante, setNombreVariante] = useState('')
   const [precioVenta, setPrecioVenta] = useState('')
+  const [costoAdquisicion, setCostoAdquisicion] = useState('')
   const [stockActual, setStockActual] = useState('0')
   const [stockMinimo, setStockMinimo] = useState('')
   const stockMinimoInitialized = useRef(false)
@@ -38,6 +39,17 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
 
     const parsedStockMinimo =
       stockMinimo.trim() === '' ? undefined : Number(stockMinimo)
+
+    const parsedCostoAdquisicion =
+      costoAdquisicion.trim() === '' ? undefined : Number(costoAdquisicion)
+
+    if (
+      parsedCostoAdquisicion !== undefined &&
+      (!Number.isFinite(parsedCostoAdquisicion) || parsedCostoAdquisicion < 0)
+    ) {
+      onError('El costo de adquisición debe ser un número mayor o igual a cero')
+      return
+    }
 
     if (
       parsedStockMinimo !== undefined &&
@@ -68,6 +80,7 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
         sku: sku.trim(),
         nombreVariante: nombreVariante.trim(),
         precioVenta: Number(precioVenta),
+        costoAdquisicion: parsedCostoAdquisicion,
         stockActual: Number(stockActual),
         stockMinimo: parsedStockMinimo,
         imagenUrl: urlFinal || undefined,
@@ -193,6 +206,26 @@ export function AddVariantModal({ onClose, onSuccess, onError }: Props) {
                   className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                  Costo de adquisición
+                </label>
+
+                <input
+                  type="number"
+                  value={costoAdquisicion}
+                  onChange={(event) => setCostoAdquisicion(event.target.value)}
+                  placeholder="80.00"
+                  min="0"
+                  step="0.01"
+                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                />
+
+                <p className="mt-2 text-[11px] text-[#8F8795]">
+                  Opcional. Indica cuánto pagaste por esta unidad.
+                </p>
               </div>
 
               <div>
