@@ -10,6 +10,51 @@ export async function uploadRoutes(fastify: FastifyInstance) {
     '/image',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['upload'],
+        summary: 'Subir imagen a Cloudinary',
+        description:
+          'Recibe una imagen (JPG, PNG o WebP) y la sube a Cloudinary. Tamaño máximo: 5 MB.',
+        security: [{ bearerAuth: [] }],
+        consumes: ['multipart/form-data'],
+        response: {
+          201: {
+            description: 'Imagen subida correctamente',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string', format: 'uri' },
+                  publicId: { type: 'string' },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Archivo no proporcionado',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              error: {
+                type: 'object',
+                properties: {
+                  code: { type: 'string' },
+                  message: { type: 'string' },
+                  statusCode: { type: 'number' },
+                },
+              },
+            },
+          },
+          422: {
+            description: 'Tipo de archivo no permitido',
+          },
+          413: {
+            description: 'Archivo supera el tamaño máximo',
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const data = await request.file()

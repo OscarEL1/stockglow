@@ -9,11 +9,42 @@ import {
 } from '../../schemas/variant.schema.js'
 
 export async function variantRoutes(fastify: FastifyInstance) {
-  // POST /api/v1/inventory/variants
   fastify.post(
     '/',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Crear variante de producto',
+        description:
+          'Crea una nueva variante (SKU) asociada a un producto existente. Valida unicidad de SKU.',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['productoId', 'sku', 'nombreVariante', 'precioVenta'],
+          properties: {
+            productoId: { type: 'string', description: 'ID del producto padre' },
+            sku: { type: 'string', description: 'Código SKU único' },
+            nombreVariante: { type: 'string', description: 'Nombre de la variante' },
+            precioVenta: { type: 'number', minimum: 0, description: 'Precio de venta' },
+            costoUnitario: { type: 'number', minimum: 0, nullable: true, description: 'Costo unitario (opcional)' },
+            stockActual: { type: 'number', minimum: 0, description: 'Stock inicial' },
+            stockMinimo: { type: 'number', minimum: 0, description: 'Stock mínimo (usa global si se omite)' },
+            imagenUrl: { type: 'string', format: 'uri', nullable: true, description: 'URL de imagen' },
+            fechaCaducidad: { type: 'string', format: 'date', nullable: true, description: 'Fecha de caducidad (YYYY-MM-DD)' },
+          },
+        },
+        response: {
+          201: {
+            description: 'Variante creada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const input = createVariantSchema.parse(request.body)
@@ -54,11 +85,36 @@ export async function variantRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/inventory/variants
   fastify.get(
     '/',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Listar variantes',
+        description:
+          'Retorna todas las variantes activas de la tienda, incluyendo datos del producto padre. Filtrable por categoría.',
+        security: [{ bearerAuth: [] }],
+        querystring: {
+          type: 'object',
+          properties: {
+            categoria: {
+              type: 'string',
+              description: 'Filtrar por categoría (opcional)',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Lista de variantes',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'array', items: { type: 'object' } },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { categoria } = request.query as { categoria?: string }
@@ -94,11 +150,53 @@ export async function variantRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // PATCH /api/v1/inventory/variants/:id/stock
   fastify.patch(
     '/:id/stock',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Ajustar stock de variante',
+        description:
+          'Ajusta el stock de una variante. Tipo AJUSTE establece el valor directo; ENTRADA/SALIDA suman o restan. Registra el movimiento.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la variante' },
+          },
+        },
+        body: {
+          type: 'object',
+          required: ['tipo', 'cantidad', 'motivo'],
+          properties: {
+            tipo: {
+              type: 'string',
+              enum: ['ENTRADA', 'SALIDA', 'AJUSTE'],
+              description: 'Tipo de movimiento',
+            },
+            cantidad: {
+              type: 'number',
+              description: 'Cantidad (para AJUSTE es el stock final, para ENTRADA/SALIDA es la cantidad a sumar/restar)',
+            },
+            motivo: {
+              type: 'string',
+              description: 'Motivo del movimiento',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Stock actualizado',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const input = adjustStockSchema.parse(request.body)
@@ -151,11 +249,53 @@ export async function variantRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/inventory/variants/:id/movements
   fastify.get(
     '/:id/movements',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Historial de movimientos de stock',
+        description:
+          'Retorna todos los movimientos de stock registrados para una variante, ordenados por fecha descendente.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la variante' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Lista de movimientos',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    tipo: { type: 'string' },
+                    cantidad: { type: 'number' },
+                    motivo: { type: 'string' },
+                    createdAt: { type: 'string' },
+                    usuario: {
+                      type: 'object',
+                      properties: {
+                        nombre: { type: 'string' },
+                        email: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const variant = await prisma.varianteProducto.findFirst({
@@ -185,11 +325,47 @@ export async function variantRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(movements))
     }
   )
-  // PATCH /api/v1/inventory/variants/:id
+
   fastify.patch(
     '/:id',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Actualizar variante',
+        description:
+          'Actualiza campos de una variante. Si el precio de venta cambia, se registra en el historial de precios.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la variante' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            sku: { type: 'string', description: 'Nuevo SKU' },
+            nombreVariante: { type: 'string', description: 'Nuevo nombre' },
+            precioVenta: { type: 'number', minimum: 0, description: 'Nuevo precio de venta' },
+            costoUnitario: { type: 'number', minimum: 0, nullable: true, description: 'Costo unitario' },
+            stockMinimo: { type: 'number', minimum: 0, description: 'Nuevo stock mínimo' },
+            imagenUrl: { type: 'string', format: 'uri', nullable: true, description: 'Nueva imagen' },
+            fechaCaducidad: { type: 'string', format: 'date', nullable: true, description: 'Nueva fecha de caducidad' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Variante actualizada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const input = updateVariantSchema.parse(request.body)
@@ -272,11 +448,34 @@ export async function variantRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // PATCH /api/v1/inventory/variants/:id/archive
   fastify.patch(
     '/:id/archive',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Archivar variante',
+        description:
+          'Marca una variante como inactiva. No se eliminará permanentemente.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la variante' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Variante archivada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: { type: 'object' },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const variant = await prisma.varianteProducto.findFirst({
@@ -300,11 +499,45 @@ export async function variantRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/inventory/variants/:id/price-history — HU-096
   fastify.get(
     '/:id/price-history',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Historial de precios',
+        description:
+          'Retorna el historial de cambios de precio de una variante, ordenado por fecha descendente.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la variante' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Historial de precios',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    precioAnterior: { type: 'number' },
+                    precioNuevo: { type: 'number' },
+                    createdAt: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const variant = await prisma.varianteProducto.findFirst({
