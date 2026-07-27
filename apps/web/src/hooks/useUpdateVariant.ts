@@ -7,6 +7,7 @@ interface UpdateVariantData {
   sku: string
   nombreVariante: string
   precioVenta: number
+  costoUnitario: number | null
   stockMinimo: number
   fechaCaducidad: string | null
   imagenUrl?: string | null

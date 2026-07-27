@@ -21,7 +21,7 @@ export const createSaleSchema = z.object({
     .max(500, 'La nota no puede exceder 500 caracteres')
     .optional()
     .nullable()
-    .transform((v) => (v == null ? v : sanitizeText(v)))
+    .transform((v) => (v == null ? v : sanitizeText(v))),
 })
 
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>

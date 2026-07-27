@@ -257,7 +257,7 @@ export function ImportInventoryModal({ isOpen, onClose }: Props) {
 
               <p className="mt-2 text-xs text-red-600">
                 Revisa que el archivo utilice exactamente las columnas mostradas
-                en la sección “Formato esperado”.
+                en la sección "Formato esperado".
               </p>
             </div>
           </div>
