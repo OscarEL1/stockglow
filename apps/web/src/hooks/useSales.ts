@@ -2,22 +2,33 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { fetchWithAuth } from '../lib/api'
 
+export type PaymentMethod = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA'
+
 export interface SaleDetalle {
   id: string
   varianteId: string
   cantidad: number
   precioUnitario: string
-  variante: { nombreVariante: string; sku: string; imagenUrl?: string }
+  variante: {
+    nombreVariante: string
+    sku: string
+    imagenUrl?: string
+  }
 }
 
 export interface Sale {
   id: string
   total: string
   descuento?: number
+  notas?: string | null
+  metodoPago: PaymentMethod
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'
   createdAt: string
   usuarioId: string
-  usuario?: { nombre: string; rol?: string }
+  usuario?: {
+    nombre: string
+    rol?: string
+  }
   detalles: SaleDetalle[]
 }
 

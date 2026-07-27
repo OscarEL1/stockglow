@@ -19,6 +19,27 @@ export const Errors = {
   // Inventario
   PRODUCT_NOT_FOUND: () =>
     new AppError('PRODUCT_NOT_FOUND', 'Producto no encontrado', 404),
+  PRODUCT_HAS_SALES: () =>
+    new AppError(
+      'PRODUCT_HAS_SALES',
+      'No se puede eliminar el producto porque tiene historial de ventas',
+      409
+    ),
+
+  PRODUCT_ALREADY_ARCHIVED: () =>
+    new AppError(
+      'PRODUCT_ALREADY_ARCHIVED',
+      'El producto ya se encuentra archivado',
+      409
+    ),
+
+  PRODUCT_ALREADY_ACTIVE: () =>
+    new AppError(
+      'PRODUCT_ALREADY_ACTIVE',
+      'El producto ya se encuentra activo',
+      409
+    ),
+
   VARIANT_NOT_FOUND: () =>
     new AppError('VARIANT_NOT_FOUND', 'Variante no encontrada', 404),
   SKU_ALREADY_EXISTS: () =>

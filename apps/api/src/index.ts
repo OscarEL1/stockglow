@@ -18,6 +18,7 @@ import { dashboardRoutes } from './routes/v1/dashboard.js'
 import { alertRoutes } from './routes/v1/alerts.js'
 import { reportsRoutes } from './routes/v1/reports.js'
 import { settingsRoutes } from './routes/v1/settings.js'
+import { inventoryImportRoutes } from './routes/v1/inventory-import.js'
 
 const fastify = Fastify({
   logger: {
@@ -55,6 +56,9 @@ await fastify.register(multipart, {
 await fastify.register(healthRoutes, { prefix: '/api/v1' })
 await fastify.register(onboardingRoutes, { prefix: '/api/v1/onboarding' }) // <-- Registrado aquí de forma limpia
 await fastify.register(productRoutes, { prefix: '/api/v1/inventory/products' })
+await fastify.register(inventoryImportRoutes, {
+  prefix: '/api/v1/inventory/import',
+})
 await fastify.register(variantRoutes, { prefix: '/api/v1/inventory/variants' })
 await fastify.register(saleRoutes, { prefix: '/api/v1/sales' })
 await fastify.register(uploadRoutes, { prefix: '/api/v1/upload' })

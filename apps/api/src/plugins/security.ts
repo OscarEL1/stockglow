@@ -7,6 +7,11 @@ import { env } from '../lib/env.js'
 
 type RateLimitBucket = 'sales' | 'auth' | 'import' | 'default'
 
+/*
+ * Limites por minuto y por IP. 'auth' cubre /api/v1/auth (si llega a
+ * existir) y /api/v1/onboarding, que hoy es el endpoint post-login mas
+ * sensible ya que Clerk maneja el login/registro fuera de este backend.
+ */
 const RATE_LIMIT_MAX: Record<RateLimitBucket, number> = {
   default: 100,
   sales: 30,
@@ -92,6 +97,8 @@ export const security = fp(async (fastify) => {
     max: (request) => RATE_LIMIT_MAX[getRateLimitBucket(request)],
     timeWindow: '1 minute',
     allowList: (request) => isExemptFromRateLimit(request),
+    // Cada bucket cuenta aparte por IP, para que el consumo de un
+    // endpoint sensible no comparta cupo con el limite global.
     keyGenerator: (request) => `${request.ip}:${getRateLimitBucket(request)}`,
     errorResponseBuilder: (_request, context) => {
       const retryAfter = Math.ceil(context.ttl / 1000)

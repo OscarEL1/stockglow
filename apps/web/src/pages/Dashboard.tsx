@@ -42,6 +42,9 @@ export function Dashboard() {
   const { data: topProducts, isLoading: topLoading } = useTopProducts(period)
 
   const { isAdmin } = useRole()
+  // El ranking expone el desempeño individual de cada empleada, por lo
+  // que solo la dueña (org:admin) puede verlo, igual que el resto de
+  // acciones sensibles del dashboard (ej. "Importar inventario").
   const canViewRanking = isAdmin
 
   const { data: employeesRanking = [], isLoading: rankingLoading } =
@@ -145,7 +148,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Category distribution + Ranking */}
+        {/* Category distribution + Ranking (ranking solo visible para la dueña, org:admin) */}
         <div className={canViewRanking ? 'grid gap-6 lg:grid-cols-3' : ''}>
           <div className={canViewRanking ? 'lg:col-span-2' : ''}>
             <CategoryPieChart />

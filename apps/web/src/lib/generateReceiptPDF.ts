@@ -1,31 +1,48 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { Sale } from '../hooks/useSales'
+import type { PaymentMethod, Sale } from '../hooks/useSales'
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  EFECTIVO: 'Efectivo',
+  TARJETA: 'Tarjeta',
+  TRANSFERENCIA: 'Transferencia',
+}
 
 export function generateReceiptPDF(sale: Sale, tenantName: string) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: [80, 200], // Formato de ticket (80mm ancho, largo flexible)
+    format: [80, 200],
   })
 
-  // Cabecera del ticket
+  // Cabecera
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  doc.text(tenantName || 'Tienda', 40, 10, { align: 'center' })
+  doc.text(tenantName || 'Tienda', 40, 10, {
+    align: 'center',
+  })
 
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.text('Ticket de Venta', 40, 16, { align: 'center' })
+  doc.text('Ticket de Venta', 40, 16, {
+    align: 'center',
+  })
 
   doc.setFontSize(8)
+
   const date = new Date(sale.createdAt)
+
   doc.text(
-    `Fecha: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`,
+    `Fecha: ${date.toLocaleDateString('es-MX')} ${date.toLocaleTimeString(
+      'es-MX'
+    )}`,
     40,
     22,
-    { align: 'center' }
+    {
+      align: 'center',
+    }
   )
+
   doc.text(`Folio: ${sale.id.slice(-8).toUpperCase()}`, 40, 26, {
     align: 'center',
   })
@@ -47,36 +64,66 @@ export function generateReceiptPDF(sale: Sale, tenantName: string) {
     head: [['Cant', 'Producto', 'P.U.', 'Importe']],
     body: tableData,
     theme: 'plain',
-    styles: { fontSize: 8, cellPadding: 1 },
-    columnStyles: {
-      0: { cellWidth: 10 }, // Cantidad
-      1: { cellWidth: 30 }, // Producto
-      2: { cellWidth: 15, halign: 'right' }, // Precio Unitario
-      3: { cellWidth: 15, halign: 'right' }, // Importe
+    styles: {
+      fontSize: 8,
+      cellPadding: 1,
     },
-    margin: { left: 5, right: 5 },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 15, halign: 'right' },
+      3: { cellWidth: 15, halign: 'right' },
+    },
+    margin: {
+      left: 5,
+      right: 5,
+    },
   })
 
-  // @ts-expect-error jspdf-autotable no expone lastAutoTable en los tipos de jsPDF
+  // @ts-expect-error jspdf-autotable no expone lastAutoTable
   const finalY = doc.lastAutoTable.finalY || 40
 
   doc.text('------------------------------------------------', 40, finalY + 4, {
     align: 'center',
   })
 
+  // Método de pago
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.text(
+    `Método de pago: ${PAYMENT_METHOD_LABELS[sale.metodoPago]}`,
+    10,
+    finalY + 10
+  )
+
+  // Descuento
+  if (Number(sale.descuento ?? 0) > 0) {
+    doc.text(
+      `Descuento: -$${Number(sale.descuento).toFixed(2)}`,
+      70,
+      finalY + 15,
+      {
+        align: 'right',
+      }
+    )
+  }
+
   // Total
+  const totalY = Number(sale.descuento ?? 0) > 0 ? finalY + 21 : finalY + 16
+
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.text('TOTAL:', 10, finalY + 10)
-  doc.text(`$${Number(sale.total).toFixed(2)} MXN`, 70, finalY + 10, {
+  doc.text('TOTAL:', 10, totalY)
+  doc.text(`$${Number(sale.total).toFixed(2)} MXN`, 70, totalY, {
     align: 'right',
   })
 
-  // Pie de ticket
+  // Pie
   doc.setFontSize(8)
   doc.setFont('helvetica', 'normal')
-  doc.text('¡Gracias por su compra!', 40, finalY + 20, { align: 'center' })
+  doc.text('¡Gracias por su compra!', 40, totalY + 10, {
+    align: 'center',
+  })
 
-  // Guardar PDF
   doc.save(`ticket_${sale.id.slice(-8)}.pdf`)
 }

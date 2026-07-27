@@ -29,7 +29,7 @@ export async function productRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/inventory/products
+  // GET /api/v1/inventory/products?status=active|archived
   fastify.get(
     '/',
     {
@@ -38,16 +38,32 @@ export async function productRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const { skip, take, page, limit } = getPagination(request.query as any)
 
+      const { status } = request.query as {
+        status?: 'active' | 'archived'
+      }
+
+      const activo = status === 'archived' ? false : true
+
+      const where = {
+        tenantId: request.tenantId,
+        activo,
+      }
+
       const [products, total] = await Promise.all([
         prisma.producto.findMany({
-          where: { tenantId: request.tenantId },
-          include: { variantes: true },
+          where,
+          include: {
+            variantes: true,
+          },
           skip,
           take,
-          orderBy: { createdAt: 'desc' },
+          orderBy: {
+            createdAt: 'desc',
+          },
         }),
+
         prisma.producto.count({
-          where: { tenantId: request.tenantId },
+          where,
         }),
       ])
 
@@ -65,7 +81,13 @@ export async function productRoutes(fastify: FastifyInstance) {
     },
     async (request: any, reply) => {
       const categories = await prisma.producto.findMany({
-        where: { tenantId: request.tenantId, categoria: { not: null } },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+          categoria: {
+            not: null,
+          },
+        },
         select: { categoria: true },
         distinct: ['categoria'],
       })
@@ -121,6 +143,214 @@ export async function productRoutes(fastify: FastifyInstance) {
       })
 
       return reply.send(successResponse(updated))
+    }
+  )
+
+  // PATCH /api/v1/inventory/products/:id/archive
+  fastify.patch(
+    '/:id/archive',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as {
+        id: string
+      }
+
+      const { tenantId, orgRole } = request
+
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      const product = await prisma.producto.findFirst({
+        where: {
+          id,
+          tenantId,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          activo: true,
+        },
+      })
+
+      if (!product) {
+        throw Errors.PRODUCT_NOT_FOUND()
+      }
+
+      if (!product.activo) {
+        throw Errors.PRODUCT_ALREADY_ARCHIVED()
+      }
+
+      const archivedProduct = await prisma.producto.update({
+        where: {
+          id: product.id,
+        },
+        data: {
+          activo: false,
+        },
+        include: {
+          variantes: true,
+        },
+      })
+
+      return reply.send(
+        successResponse({
+          ...archivedProduct,
+          message: 'Producto archivado correctamente',
+        })
+      )
+    }
+  )
+
+  // PATCH /api/v1/inventory/products/:id/restore
+  fastify.patch(
+    '/:id/restore',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as {
+        id: string
+      }
+
+      const { tenantId, orgRole } = request
+
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      const product = await prisma.producto.findFirst({
+        where: {
+          id,
+          tenantId,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          activo: true,
+        },
+      })
+
+      if (!product) {
+        throw Errors.PRODUCT_NOT_FOUND()
+      }
+
+      if (product.activo) {
+        throw Errors.PRODUCT_ALREADY_ACTIVE()
+      }
+
+      const restoredProduct = await prisma.producto.update({
+        where: {
+          id: product.id,
+        },
+        data: {
+          activo: true,
+        },
+        include: {
+          variantes: true,
+        },
+      })
+
+      return reply.send(
+        successResponse({
+          ...restoredProduct,
+          message: 'Producto restaurado correctamente',
+        })
+      )
+    }
+  )
+
+  // DELETE /api/v1/inventory/products/:id
+  fastify.delete(
+    '/:id',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+      const { tenantId, orgRole } = request
+
+      /*
+       * El frontend y backend utilizan el mismo rol de Clerk.
+       * Solo administradores de la organización pueden eliminar.
+       */
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      const product = await prisma.producto.findFirst({
+        where: {
+          id,
+          tenantId,
+        },
+        select: {
+          id: true,
+          nombre: true,
+          variantes: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      })
+
+      if (!product) {
+        throw Errors.PRODUCT_NOT_FOUND()
+      }
+
+      const variantIds = product.variantes.map((variant) => variant.id)
+
+      const salesHistoryCount =
+        variantIds.length === 0
+          ? 0
+          : await prisma.detalleVenta.count({
+              where: {
+                varianteId: {
+                  in: variantIds,
+                },
+              },
+            })
+
+      if (salesHistoryCount > 0) {
+        throw Errors.PRODUCT_HAS_SALES()
+      }
+
+      await prisma.$transaction([
+        prisma.alerta.deleteMany({
+          where: {
+            tenantId,
+            varianteId: {
+              in: variantIds,
+            },
+          },
+        }),
+
+        prisma.movimientoStock.deleteMany({
+          where: {
+            tenantId,
+            varianteId: {
+              in: variantIds,
+            },
+          },
+        }),
+
+        prisma.producto.delete({
+          where: {
+            id: product.id,
+          },
+        }),
+      ])
+
+      return reply.send(
+        successResponse({
+          id: product.id,
+          nombre: product.nombre,
+          variantesEliminadas: variantIds.length,
+          message: 'Producto eliminado correctamente',
+        })
+      )
     }
   )
 }

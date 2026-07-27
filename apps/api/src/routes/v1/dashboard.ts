@@ -11,11 +11,22 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     },
     async (request: any, reply) => {
       const totalProducts = await prisma.producto.count({
-        where: { tenantId: request.tenantId },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+        },
       })
 
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId, activo: true },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+          producto: {
+            is: {
+              activo: true,
+            },
+          },
+        },
         select: {
           stockActual: true,
           precioVenta: true,
@@ -135,12 +146,22 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     },
     async (request: any, reply) => {
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId, activo: true },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+          producto: {
+            is: {
+              activo: true,
+            },
+          },
+        },
         select: {
           stockActual: true,
           precioVenta: true,
           producto: {
-            select: { categoria: true },
+            select: {
+              categoria: true,
+            },
           },
         },
       })

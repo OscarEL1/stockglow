@@ -75,6 +75,10 @@ export function SalesMetricsCards({
           const data = metrics[period]
           const isActive = selectedPeriod === period
 
+          // Solo la card "mes" tiene comparacion vs periodo anterior — el
+          // mismo criterio visual que tenia la card "Ventas del Mes" en
+          // useDashboardSummary (verde/rojo si hay dato de comparacion,
+          // azul neutral si montoMesAnterior es 0, es decir sin datos).
           const mes = period === 'mes' ? metrics.mes : null
           const hasComparison = mes !== null && mes.montoMesAnterior > 0
           const isUp = hasComparison && mes!.montoTotal >= mes!.montoMesAnterior

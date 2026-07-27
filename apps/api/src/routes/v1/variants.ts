@@ -68,9 +68,17 @@ export async function variantRoutes(fastify: FastifyInstance) {
           tenantId: request.tenantId,
           activo: true,
 
-          ...(categoria && categoria !== 'Todas'
-            ? { producto: { categoria } }
-            : {}),
+          producto: {
+            is: {
+              activo: true,
+
+              ...(categoria && categoria !== 'Todas'
+                ? {
+                    categoria,
+                  }
+                : {}),
+            },
+          },
         },
 
         include: {
