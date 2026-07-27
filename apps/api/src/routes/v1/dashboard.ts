@@ -15,7 +15,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       })
 
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
+        where: { tenantId: request.tenantId, activo: true },
         select: {
           stockActual: true,
           precioVenta: true,
@@ -27,7 +27,6 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       let totalValue = 0
       let totalAlerts = 0
 
-      // HU-081: Cálculo de margen de ganancia promedio
       let sumaMargenes = 0
       let variantesConCosto = 0
 
@@ -72,7 +71,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       // Determine start of previous month
       const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       startPrevMonth.setHours(0, 0, 0, 0)
-      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1) // last ms of previous month
+      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1)
 
       // Sales for current month
       const currentMonthQuery = await prisma.venta.aggregate({
@@ -95,7 +94,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       })
 
       const totalVentasMesActual = Number(currentMonthQuery._sum.total || 0)
-      const totalVentasMesAnterior = 999999 // TEMPORAL: Forzado a un número alto para pruebas de captura en rojo (originalmente: Number(prevMonthQuery._sum.total || 0))
+      const totalVentasMesAnterior = Number(prevMonthQuery._sum.total || 0)
 
       // Existing today sales (keep for other UI)
       const today = new Date()
@@ -136,7 +135,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     },
     async (request: any, reply) => {
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
+        where: { tenantId: request.tenantId, activo: true },
         select: {
           stockActual: true,
           precioVenta: true,

@@ -2,7 +2,56 @@ import fp from 'fastify-plugin'
 import helmet from '@fastify/helmet'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
+import type { FastifyRequest } from 'fastify'
 import { env } from '../lib/env.js'
+
+type RateLimitBucket = 'sales' | 'auth' | 'import' | 'default'
+
+const RATE_LIMIT_MAX: Record<RateLimitBucket, number> = {
+  default: 100,
+  sales: 30,
+  auth: 10,
+  import: 5,
+}
+
+function getPath(request: FastifyRequest): string {
+  return request.url.split('?')[0] ?? request.url
+}
+
+function getRateLimitBucket(request: FastifyRequest): RateLimitBucket {
+  if (request.method !== 'POST') {
+    return 'default'
+  }
+
+  const path = getPath(request)
+
+  if (path.startsWith('/api/v1/sales')) {
+    return 'sales'
+  }
+
+  if (
+    path.startsWith('/api/v1/auth') ||
+    path.startsWith('/api/v1/onboarding')
+  ) {
+    return 'auth'
+  }
+
+  if (path.startsWith('/api/v1/inventory/import')) {
+    return 'import'
+  }
+
+  return 'default'
+}
+
+function isExemptFromRateLimit(request: FastifyRequest): boolean {
+  if (request.method !== 'GET') {
+    return false
+  }
+
+  const path = getPath(request)
+
+  return path === '/api/v1/health' || path.startsWith('/api/v1/docs')
+}
 
 export const security = fp(async (fastify) => {
   fastify.addHook('onRequest', async (request: any) => {
@@ -23,9 +72,12 @@ export const security = fp(async (fastify) => {
         base.replace('https://', 'https://www.'),
         base.replace('https://www.', 'https://'),
       ]
-      
-      const isLocalDev = env.NODE_ENV === 'development' && origin && origin.startsWith('http://localhost:')
-      
+
+      const isLocalDev =
+        env.NODE_ENV === 'development' &&
+        origin &&
+        origin.startsWith('http://localhost:')
+
       if (!origin || allowed.includes(origin) || isLocalDev) {
         cb(null, true)
       } else {
@@ -35,8 +87,23 @@ export const security = fp(async (fastify) => {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
+
   await fastify.register(rateLimit, {
-    max: 100,
+    max: (request) => RATE_LIMIT_MAX[getRateLimitBucket(request)],
     timeWindow: '1 minute',
+    allowList: (request) => isExemptFromRateLimit(request),
+    keyGenerator: (request) => `${request.ip}:${getRateLimitBucket(request)}`,
+    errorResponseBuilder: (_request, context) => {
+      const retryAfter = Math.ceil(context.ttl / 1000)
+
+      const error = new Error(
+        `Has excedido el limite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`
+      ) as Error & { statusCode: number; retryAfter: number }
+
+      error.statusCode = context.statusCode
+      error.retryAfter = retryAfter
+
+      return error
+    },
   })
 })

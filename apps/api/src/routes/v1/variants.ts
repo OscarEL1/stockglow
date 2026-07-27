@@ -67,12 +67,19 @@ export async function variantRoutes(fastify: FastifyInstance) {
         where: {
           tenantId: request.tenantId,
           activo: true,
+
           ...(categoria && categoria !== 'Todas'
             ? { producto: { categoria } }
             : {}),
         },
-        include: { producto: true },
-        orderBy: { updatedAt: 'desc' },
+
+        include: {
+          producto: true,
+        },
+
+        orderBy: {
+          updatedAt: 'desc',
+        },
       })
 
       return reply.send(successResponse(variants))
@@ -237,7 +244,6 @@ export async function variantRoutes(fastify: FastifyInstance) {
           },
         })
 
-        // HU-096: Registrar historial de precio si cambió
         if (
           input.precioVenta !== undefined &&
           Number(input.precioVenta) !== Number(variant.precioVenta)

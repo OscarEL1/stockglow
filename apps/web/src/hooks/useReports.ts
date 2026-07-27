@@ -41,3 +41,27 @@ export function useTopProducts(period: 'week' | 'month' = 'month') {
     },
   })
 }
+
+export interface EmployeeRankingItem {
+  usuarioId: string
+  nombre: string
+  ventas: number
+  montoTotal: number
+}
+
+export function useEmployeesRanking(enabled = true) {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['employeesRanking'],
+    enabled,
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        '/api/v1/reports/employees-ranking'
+      )
+
+      return res.data as EmployeeRankingItem[]
+    },
+  })
+}
