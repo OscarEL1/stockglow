@@ -1,0 +1,1 @@
+const { PrismaClient } = require("@prisma/client"); const prisma = new PrismaClient(); async function main() { await prisma.$executeRawUnsafe("ALTER TABLE ""productos"" ADD COLUMN IF NOT EXISTS ""proveedor_id"" TEXT;"); console.log("? Columna agregada con exito!"); } main().catch(console.error).finally(() => prisma.$disconnect());

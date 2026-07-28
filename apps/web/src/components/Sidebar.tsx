@@ -8,6 +8,7 @@ import {
   Package,
   Tag,
   ShoppingCart,
+  Truck,
   ArrowUpDown,
   Bell,
   Users,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   },
   { label: 'Inventario', path: '/inventory', icon: Package, adminOnly: false },
   { label: 'Productos', path: '/products', icon: Tag, adminOnly: false },
+  { label: 'Proveedores', path: '/suppliers', icon: Truck, adminOnly: false },
   { label: 'Ventas', path: '/sales', icon: ShoppingCart, adminOnly: false },
   {
     label: 'Movimientos',

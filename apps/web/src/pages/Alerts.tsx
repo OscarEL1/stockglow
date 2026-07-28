@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
-import { Check, CheckCheck, Calendar } from 'lucide-react'
+import { Check, CheckCheck, Calendar, Truck, Phone, Mail } from 'lucide-react'
 
 export interface Alerta {
   id: string
@@ -20,6 +20,11 @@ export interface Alerta {
     producto: {
       nombre: string
       marca: string | null
+      proveedor?: {
+        nombre: string
+        telefono?: string | null
+        correo?: string | null
+      } | null
     }
   }
 }
@@ -65,6 +70,26 @@ function AlertsTable({
                   <div className="text-xs text-gray-400">
                     {variante.producto.marca || 'Sin marca'}
                   </div>
+                  {variante.producto.proveedor && (
+                    <div className="mt-2 text-xs border-t border-gray-100 pt-2 text-[#7A7480]">
+                      <p className="font-semibold text-[#2D2A32] flex items-center gap-1">
+                        <Truck size={12} className="text-[#E85D8C]" />
+                        {variante.producto.proveedor.nombre}
+                      </p>
+                      {variante.producto.proveedor.telefono && (
+                        <p className="flex items-center gap-1 text-gray-500 mt-0.5">
+                          <Phone size={10} />{' '}
+                          {variante.producto.proveedor.telefono}
+                        </p>
+                      )}
+                      {variante.producto.proveedor.correo && (
+                        <p className="flex items-center gap-1 text-gray-500 mt-0.5">
+                          <Mail size={10} />{' '}
+                          {variante.producto.proveedor.correo}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {tipo === 'CADUCIDAD_PROXIMA' &&
                     fechaCaducidad &&

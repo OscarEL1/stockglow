@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCreateProduct } from '../hooks/useCreateProduct'
 import { useCategories } from '../hooks/useCategories'
+import { useSuppliers } from '../hooks/useSuppliers'
 
 interface Props {
   onClose: () => void
@@ -12,10 +13,11 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
   const [marca, setMarca] = useState('')
   const [categoria, setCategoria] = useState('')
   const [descripcion, setDescripcion] = useState('')
+  const [proveedorId, setProveedorId] = useState('')
 
   const { mutate, isPending, error } = useCreateProduct()
   const { data: categories = [] } = useCategories()
-
+  const { suppliers = [] } = useSuppliers()
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!nombre.trim()) return
@@ -25,6 +27,8 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
         nombre: nombre.trim(),
         marca: marca.trim() || undefined,
         categoria: categoria.trim() || undefined,
+        descripcion: descripcion.trim() || undefined,
+        proveedorId: proveedorId || undefined,
       },
       {
         onSuccess: () => {
@@ -71,6 +75,24 @@ export function AddProductModal({ onClose, onSuccess }: Props) {
                   className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
                   required
                 />
+              </div>
+              {/* Selector de Proveedor con los estilos exactos de tu UI */}
+              <div>
+                <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+                  Proveedor (Opcional)
+                </label>
+                <select
+                  value={proveedorId}
+                  onChange={(e) => setProveedorId(e.target.value)}
+                  className="h-14 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10"
+                >
+                  <option value="">Sin proveedor asignado</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">

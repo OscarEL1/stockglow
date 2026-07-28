@@ -103,6 +103,7 @@ function SaleDetailModal({
           >
             {sale.estado}
           </span>
+
           {sale.usuario && (
             <span className="text-sm text-[#7A7480]">
               Vendido por:{' '}
@@ -278,6 +279,7 @@ export function Sales() {
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [search, setSearch] = useState('')
   const [descuento, setDescuento] = useState(0)
+  const [notas, setNotas] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
   const [page, setPage] = useState(1)
@@ -411,9 +413,11 @@ export function Sales() {
           cantidad: i.cantidad,
         })),
         descuento,
+        notas: notas.trim() ? notas.trim() : undefined,
       })
       setItems([])
       setDescuento(0)
+      setNotas('')
       setPage(1)
     } catch (err) {
       setError(
@@ -529,6 +533,26 @@ export function Sales() {
               No has agregado ninguna variante.
             </p>
           )}
+
+          {/* Campo opcional de Notas u Observaciones */}
+          <div className="mb-4">
+            <label
+              htmlFor="notas"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Notas u observaciones (opcional)
+            </label>
+            <input
+              id="notas"
+              type="text"
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Ej. Pago con transferencia, entrega pendiente..."
+              className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            />
+          </div>
+
+          {/* ... cálculo de subtotales, totales y botón de confirmar ... */}
 
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm font-medium text-gray-700">

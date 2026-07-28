@@ -9,20 +9,20 @@ datasource db {
 }
 
 model Tenant {
-  id                  String   @id @default(uuid())
-  nombreTienda        String   @map("nombre_tienda") @db.VarChar(100)
-  logoUrl             String?  @map("logo_url")
-  planSuscripcion     String   @default("basic") @map("plan_suscripcion") @db.VarChar(20)
-  createdAt           DateTime @default(now()) @map("created_at")
-  wizardStep          Int      @default(1)
-  stockMinimoGlobal   Int      @default(5) @map("stock_minimo_global")
-  umbralDiasCaducidad Int      @default(30) @map("umbral_dias_caducidad")
-
-  usuarios   Usuario[]
-  productos  Producto[]
-  ventas     Venta[]
-  alertas    Alerta[]
-  categorias Categoria[]
+  id                  String      @id @default(uuid())
+  nombreTienda        String      @map("nombre_tienda") @db.VarChar(100)
+  planSuscripcion     String      @default("basic") @map("plan_suscripcion") @db.VarChar(20)
+  createdAt           DateTime    @default(now()) @map("created_at")
+  wizardStep          Int         @default(1)
+  stockMinimoGlobal   Int         @default(5) @map("stock_minimo_global")
+  logoUrl             String?     @map("logo_url")
+  umbralDiasCaducidad Int         @default(30) @map("umbral_dias_caducidad")
+  alertas             Alerta[]
+  categorias          Categoria[]
+  productos           Producto[]
+  proveedores         Proveedor[]
+  usuarios            Usuario[]
+  ventas              Venta[]
 
   @@map("tenants")
 }
@@ -32,128 +32,148 @@ model Categoria {
   tenantId  String   @map("tenant_id")
   nombre    String
   createdAt DateTime @default(now()) @map("created_at")
-
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, nombre])
   @@map("categorias")
 }
+model Proveedor {
+  id        String     @id @default(uuid())
+  tenantId  String     @map("tenant_id")
+  nombre    String     @db.VarChar(150)
+  contacto  String?    @db.VarChar(100)
+  telefono  String?    @db.VarChar(30)
+  email     String?    @db.VarChar(100)
+  createdAt DateTime   @default(now()) @map("created_at")
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productos Producto[]
 
+  @@map("proveedores")
+}
 model Usuario {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
-  clerkUserId String   @unique @map("clerk_user_id")
-  nombre      String   @db.VarChar(100)
-  email       String   @unique @db.VarChar(100)
+  id          String            @id @default(uuid())
+  tenantId    String            @map("tenant_id")
+  clerkUserId String            @unique @map("clerk_user_id")
+  nombre      String            @db.VarChar(100)
+  email       String            @unique @db.VarChar(100)
   rol         Rol
-  createdAt   DateTime @default(now()) @map("created_at")
-
+  createdAt   DateTime          @default(now()) @map("created_at")
+  movimientos MovimientoStock[]
   tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ventas      Venta[]
-  movimientos MovimientoStock[]
 
   @@map("usuarios")
 }
 
 model Producto {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
-  nombre      String   @db.VarChar(150)
-  marca       String?  @db.VarChar(50)
-  categoria   String?  @db.VarChar(50)
-  descripcion String?  @db.Text
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  variantes VarianteProducto[]
+  id          String             @id @default(uuid())
+  tenantId    String             @map("tenant_id")
+  proveedorId String?            @map("proveedor_id")
+  nombre      String             @db.VarChar(150)
+  marca       String?            @db.VarChar(50)
+  categoria   String?            @db.VarChar(50)
+  descripcion String?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  activo      Boolean            @default(true)
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  proveedor   Proveedor?         @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  variantes   VarianteProducto[]
 
   @@index([tenantId, activo])
   @@map("productos")
 }
 
 model VarianteProducto {
-  id             String    @id @default(uuid())
-  tenantId       String    @map("tenant_id")
-  productoId     String    @map("producto_id")
-  sku            String    @db.VarChar(50)
-  nombreVariante String    @map("nombre_variante") @db.VarChar(100)
-  imagenUrl      String?   @map("imagen_url")
-  precioVenta    Decimal   @map("precio_venta") @db.Decimal(10, 2)
-  stockActual    Int       @default(0) @map("stock_actual")
-  stockMinimo    Int       @default(5) @map("stock_minimo")
-  fechaCaducidad DateTime? @map("fecha_caducidad") @db.Date
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  alertaLeida    Boolean   @default(false) @map("alerta_leida")
-  activo         Boolean   @default(true)
-
-  producto    Producto          @relation(fields: [productoId], references: [id], onDelete: Cascade)
-  detalles    DetalleVenta[]
-  movimientos MovimientoStock[]
-  alertas     Alerta[]
+  id                String              @id @default(uuid())
+  tenantId          String              @map("tenant_id")
+  productoId        String              @map("producto_id")
+  sku               String              @db.VarChar(50)
+  nombreVariante    String              @map("nombre_variante") @db.VarChar(100)
+  imagenUrl         String?             @map("imagen_url")
+  precioVenta       Decimal             @map("precio_venta") @db.Decimal(10, 2)
+  stockActual       Int                 @default(0) @map("stock_actual")
+  stockMinimo       Int                 @default(5) @map("stock_minimo")
+  fechaCaducidad    DateTime?           @map("fecha_caducidad") @db.Date
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  activo            Boolean             @default(true)
+  alertaLeida       Boolean             @default(false) @map("alerta_leida")
+  costo_unitario    Decimal?            @db.Decimal(10, 2)
+  alertas           Alerta[]
+  detalles          DetalleVenta[]
+  historial_precios historial_precios[]
+  movimientos       MovimientoStock[]
+  producto          Producto            @relation(fields: [productoId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, sku], name: "unique_sku_per_tenant")
   @@map("variantes_producto")
 }
 
 model Venta {
-  id        String      @id @default(uuid())
-  tenantId  String      @map("tenant_id")
-  usuarioId String      @map("usuario_id")
-  total     Decimal     @db.Decimal(10, 2)
-  descuento Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
-  notas     String?     @db.Text
-  estado    EstadoVenta @default(PENDIENTE)
-  createdAt DateTime    @default(now()) @map("created_at")
-
-  tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  usuario  Usuario        @relation(fields: [usuarioId], references: [id])
-  detalles DetalleVenta[]
+  id          String         @id @default(uuid())
+  tenantId    String         @map("tenant_id")
+  usuarioId   String         @map("usuario_id")
+  total       Decimal        @db.Decimal(10, 2)
+  estado      EstadoVenta    @default(PENDIENTE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  metodo_pago MetodoPago     @default(EFECTIVO)
+  descuento   Decimal?       @default(0) @map("descuento") @db.Decimal(10, 2)
+  notas       String?
+  detalles    DetalleVenta[]
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  usuario     Usuario        @relation(fields: [usuarioId], references: [id])
 
   @@map("ventas")
 }
 
 model DetalleVenta {
-  id             String  @id @default(uuid())
-  ventaId        String  @map("venta_id")
-  varianteId     String  @map("variante_id")
+  id             String           @id @default(uuid())
+  ventaId        String           @map("venta_id")
+  varianteId     String           @map("variante_id")
   cantidad       Int
-  precioUnitario Decimal @map("precio_unitario") @db.Decimal(10, 2)
-
-  venta    Venta            @relation(fields: [ventaId], references: [id], onDelete: Cascade)
-  variante VarianteProducto @relation(fields: [varianteId], references: [id])
+  precioUnitario Decimal          @map("precio_unitario") @db.Decimal(10, 2)
+  variante       VarianteProducto @relation(fields: [varianteId], references: [id])
+  venta          Venta            @relation(fields: [ventaId], references: [id], onDelete: Cascade)
 
   @@map("detalle_ventas")
 }
 
 model MovimientoStock {
-  id         String         @id @default(uuid())
-  tenantId   String         @map("tenant_id")
-  varianteId String         @map("variante_id")
+  id         String           @id @default(uuid())
+  tenantId   String           @map("tenant_id")
+  varianteId String           @map("variante_id")
   tipo       TipoMovimiento
   cantidad   Int
-  motivo     String?        @db.VarChar(255)
-  usuarioId  String         @map("usuario_id")
-  createdAt  DateTime       @default(now()) @map("created_at")
-
-  variante VarianteProducto @relation(fields: [varianteId], references: [id])
-  usuario  Usuario          @relation(fields: [usuarioId], references: [id])
+  motivo     String?          @db.VarChar(255)
+  usuarioId  String           @map("usuario_id")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  usuario    Usuario          @relation(fields: [usuarioId], references: [id])
+  variante   VarianteProducto @relation(fields: [varianteId], references: [id])
 
   @@map("movimientos_stock")
 }
 
 model Alerta {
-  id         String     @id @default(uuid())
-  tenantId   String     @map("tenant_id")
-  varianteId String     @map("variante_id")
+  id         String           @id @default(uuid())
+  tenantId   String           @map("tenant_id")
+  varianteId String           @map("variante_id")
   tipo       TipoAlerta
-  leida      Boolean    @default(false)
-  createdAt  DateTime   @default(now()) @map("created_at")
-
-  tenant   Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  variante VarianteProducto @relation(fields: [varianteId], references: [id])
+  leida      Boolean          @default(false)
+  createdAt  DateTime         @default(now()) @map("created_at")
+  tenant     Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variante   VarianteProducto @relation(fields: [varianteId], references: [id])
 
   @@map("alertas")
+}
+
+model historial_precios {
+  id                 String           @id
+  variante_id        String
+  precio_anterior    Decimal          @db.Decimal(10, 2)
+  precio_nuevo       Decimal          @db.Decimal(10, 2)
+  created_at         DateTime         @default(now())
+  variantes_producto VarianteProducto @relation(fields: [variante_id], references: [id], onDelete: Cascade)
+
+  @@index([variante_id])
 }
 
 enum Rol {
@@ -178,4 +198,10 @@ enum TipoMovimiento {
 enum TipoAlerta {
   BAJO_STOCK
   CADUCIDAD_PROXIMA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
 }

@@ -45,7 +45,10 @@ export async function alertRoutes(fastify: FastifyInstance) {
 
       // Alertas persistidas (hoy: BAJO_STOCK, generadas al confirmar una venta)
       const alertasStock = await prisma.alerta.findMany({
-        where: whereClause,
+        where: {
+          tenantId: 'org_3FJDhT6EvcRYRaLhGr8Suxa6xyG',
+          leida: false,
+        },
         include: {
           variante: {
             select: {
@@ -54,7 +57,10 @@ export async function alertRoutes(fastify: FastifyInstance) {
               stockActual: true,
               stockMinimo: true,
               producto: {
-                select: { nombre: true, marca: true },
+                select: {
+                  nombre: true,
+                  marca: true,
+                },
               },
             },
           },
@@ -73,7 +79,18 @@ export async function alertRoutes(fastify: FastifyInstance) {
         },
         include: {
           producto: {
-            select: { nombre: true, marca: true },
+            select: {
+              nombre: true,
+              marca: true,
+              proveedor: {
+                select: {
+                  id: true,
+                  nombre: true,
+                  telefono: true,
+                  email: true,
+                },
+              },
+            },
           },
         },
       })
@@ -109,6 +126,7 @@ export async function alertRoutes(fastify: FastifyInstance) {
               producto: {
                 nombre: v.producto.nombre,
                 marca: v.producto.marca || null,
+                proveedor: v.producto.proveedor || null,
               },
             },
           }
