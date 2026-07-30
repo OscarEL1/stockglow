@@ -290,4 +290,146 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(result))
     }
   )
+
+  // GET /api/v1/reports/mermas
+  fastify.get(
+    '/mermas',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Reporte de mermas y productos caducados',
+        description:
+          'Devuelve todos los movimientos de tipo MERMA y CADUCADO del tenant, con filtros opcionales de fecha y tipo',
+        querystring: {
+          type: 'object',
+          properties: {
+            fechaInicio: { type: 'string', format: 'date' },
+            fechaFin: { type: 'string', format: 'date' },
+            tipo: { type: 'string', enum: ['MERMA', 'CADUCADO'] },
+          },
+        },
+      },
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+      const { fechaInicio, fechaFin, tipo } = request.query as {
+        fechaInicio?: string
+        fechaFin?: string
+        tipo?: 'MERMA' | 'CADUCADO'
+      }
+
+      const where: any = {
+        tenantId,
+        tipo: tipo ? tipo : { in: ['MERMA', 'CADUCADO'] },
+      }
+
+      if (fechaInicio || fechaFin) {
+        where.createdAt = {}
+        if (fechaInicio) where.createdAt.gte = new Date(fechaInicio)
+        if (fechaFin) {
+          const end = new Date(fechaFin)
+          end.setHours(23, 59, 59, 999)
+          where.createdAt.lte = end
+        }
+      }
+
+      const movimientos = await prisma.movimientoStock.findMany({
+        where,
+        include: {
+          variante: {
+            select: {
+              id: true,
+              sku: true,
+              nombreVariante: true,
+              imagenUrl: true,
+              precioVenta: true,
+              producto: {
+                select: { id: true, nombre: true, marca: true },
+              },
+            },
+          },
+          usuario: {
+            select: { id: true, nombre: true, email: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const resumen = movimientos.reduce(
+        (acc, m) => {
+          const key = m.tipo
+          if (!acc[key]) {
+            acc[key] = { tipo: key, cantidadTotal: 0, registros: 0 }
+          }
+          acc[key].cantidadTotal += Math.abs(m.cantidad)
+          acc[key].registros += 1
+          return acc
+        },
+        {} as Record<
+          string,
+          { tipo: string; cantidadTotal: number; registros: number }
+        >
+      )
+
+      return reply.send(
+        successResponse({
+          movimientos,
+          resumen: Object.values(resumen),
+        })
+      )
+    }
+  )
+
+  // GET /api/v1/reports/archived-products
+  fastify.get(
+    '/archived-products',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Reporte de productos dados de baja',
+        description:
+          'Devuelve todos los productos archivados/desactivados del tenant con información de variantes y último movimiento',
+      },
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+
+      const productos = await prisma.producto.findMany({
+        where: { tenantId, activo: false },
+        include: {
+          variantes: {
+            select: {
+              id: true,
+              sku: true,
+              nombreVariante: true,
+              stockActual: true,
+              precioVenta: true,
+              activo: true,
+            },
+          },
+          proveedor: {
+            select: { id: true, nombre: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const totalVariantes = productos.reduce(
+        (sum, p) => sum + p.variantes.length,
+        0
+      )
+
+      return reply.send(
+        successResponse({
+          productos,
+          resumen: {
+            totalProductos: productos.length,
+            totalVariantes,
+          },
+        })
+      )
+    }
+  )
 }

@@ -22,6 +22,65 @@ export interface EmployeeRankingItem {
   montoTotal: number
 }
 
+export interface MermasFilters {
+  fechaInicio?: string
+  fechaFin?: string
+  tipo?: 'MERMA' | 'CADUCADO'
+}
+
+export interface MovimientoMerma {
+  id: string
+  tipo: string
+  cantidad: number
+  motivo: string | null
+  createdAt: string
+  variante: {
+    id: string
+    sku: string
+    nombreVariante: string
+    imagenUrl: string | null
+    precioVenta: number
+    producto: {
+      id: string
+      nombre: string
+      marca: string | null
+    }
+  }
+  usuario: {
+    id: string
+    nombre: string
+    email: string
+  }
+}
+
+export interface MermasReport {
+  movimientos: MovimientoMerma[]
+  resumen: { tipo: string; cantidadTotal: number; registros: number }[]
+}
+
+export interface ArchivedProduct {
+  id: string
+  nombre: string
+  marca: string | null
+  categoria: string | null
+  descripcion: string | null
+  createdAt: string
+  variantes: {
+    id: string
+    sku: string
+    nombreVariante: string
+    stockActual: number
+    precioVenta: number
+    activo: boolean
+  }[]
+  proveedor: { id: string; nombre: string } | null
+}
+
+export interface ArchivedProductsReport {
+  productos: ArchivedProduct[]
+  resumen: { totalProductos: number; totalVariantes: number }
+}
+
 export function useSalesByDay() {
   const { getToken } = useAuth()
 
@@ -64,6 +123,43 @@ export function useEmployeesRanking(enabled = true) {
       )
 
       return res.data as EmployeeRankingItem[]
+    },
+  })
+}
+
+export function useMermasReport(filters: MermasFilters = {}) {
+  const { getToken } = useAuth()
+
+  const params = new URLSearchParams()
+  if (filters.fechaInicio) params.set('fechaInicio', filters.fechaInicio)
+  if (filters.fechaFin) params.set('fechaFin', filters.fechaFin)
+  if (filters.tipo) params.set('tipo', filters.tipo)
+
+  const query = params.toString() ? `?${params.toString()}` : ''
+
+  return useQuery({
+    queryKey: ['mermasReport', filters],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        `/api/v1/reports/mermas${query}`
+      )
+      return res.data as MermasReport
+    },
+  })
+}
+
+export function useArchivedProductsReport() {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['archivedProductsReport'],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        '/api/v1/reports/archived-products'
+      )
+      return res.data as ArchivedProductsReport
     },
   })
 }
