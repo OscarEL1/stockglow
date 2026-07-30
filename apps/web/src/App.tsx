@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
 import { GlobalToast } from './components/GlobalToast'
 import { Suppliers } from './pages/Suppliers'
+import { DailyClosing } from './pages/DailyClosing'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -114,6 +115,17 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Sales />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/daily-closing"
+          element={
+            <ProtectedRoute>
+              <ProtectedByRole role="admin">
+                <DailyClosing />
+              </ProtectedByRole>
             </ProtectedRoute>
           }
         />
