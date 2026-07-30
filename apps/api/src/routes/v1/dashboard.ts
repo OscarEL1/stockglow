@@ -3,24 +3,74 @@ import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
-  // GET /api/v1/dashboard/summary
   fastify.get(
     '/summary',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Resumen del dashboard',
+        description:
+          'Retorna métricas generales: total de productos, variantes, valor de inventario, alertas, ventas del día/mes, y margen promedio de ganancia.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Resumen del dashboard',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  totalProducts: { type: 'number' },
+                  totalVariants: { type: 'number' },
+                  totalValue: { type: 'number' },
+                  totalAlerts: { type: 'number' },
+                  totalVentasHoy: { type: 'number' },
+                  totalVentasMesActual: { type: 'number' },
+                  totalVentasMesAnterior: { type: 'number' },
+                  disponibles: { type: 'number' },
+                  stockBajo: { type: 'number' },
+                  agotados: { type: 'number' },
+                  margenPromedio: { type: 'number', nullable: true },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const totalProducts = await prisma.producto.count({
-        where: { tenantId: request.tenantId },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+        },
       })
 
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
-        select: { stockActual: true, precioVenta: true, stockMinimo: true },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+          producto: {
+            is: {
+              activo: true,
+            },
+          },
+        },
+        select: {
+          stockActual: true,
+          precioVenta: true,
+          stockMinimo: true,
+          costoUnitario: true,
+        },
       })
 
       let totalValue = 0
       let totalAlerts = 0
+
+      let sumaMargenes = 0
+      let variantesConCosto = 0
 
       for (const variant of variants) {
         const stock = variant.stockActual
@@ -30,7 +80,20 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         if (stock <= variant.stockMinimo) {
           totalAlerts++
         }
+
+        if (variant.costoUnitario !== null) {
+          const costo = Number(variant.costoUnitario)
+          if (precio > 0 && costo > 0) {
+            sumaMargenes += ((precio - costo) / precio) * 100
+            variantesConCosto++
+          }
+        }
       }
+
+      const margenPromedio =
+        variantesConCosto > 0
+          ? Math.round((sumaMargenes / variantesConCosto) * 10) / 10
+          : null
 
       const totalVariants = variants.length
 
@@ -50,7 +113,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       // Determine start of previous month
       const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       startPrevMonth.setHours(0, 0, 0, 0)
-      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1) // last ms of previous month
+      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1)
 
       // Sales for current month
       const currentMonthQuery = await prisma.venta.aggregate({
@@ -100,25 +163,62 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           disponibles,
           stockBajo,
           agotados,
+          margenPromedio,
         })
       )
     }
   )
 
-  // GET /api/v1/dashboard/category-distribution
   fastify.get(
     '/category-distribution',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Distribución por categoría',
+        description:
+          'Retorna el valor total del inventario y número de variantes agrupados por categoría.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Distribución de categorías',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    categoria: { type: 'string' },
+                    totalValue: { type: 'number' },
+                    totalVariants: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const variants = await prisma.varianteProducto.findMany({
-        where: { tenantId: request.tenantId },
+        where: {
+          tenantId: request.tenantId,
+          activo: true,
+          producto: {
+            is: {
+              activo: true,
+            },
+          },
+        },
         select: {
           stockActual: true,
           precioVenta: true,
           producto: {
-            select: { categoria: true },
+            select: {
+              categoria: true,
+            },
           },
         },
       })

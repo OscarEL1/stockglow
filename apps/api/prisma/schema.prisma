@@ -62,11 +62,13 @@ model Producto {
   marca       String?  @db.VarChar(50)
   categoria   String?  @db.VarChar(50)
   descripcion String?  @db.Text
+  activo      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   variantes VarianteProducto[]
 
+  @@index([tenantId, activo])
   @@map("productos")
 }
 
@@ -78,6 +80,7 @@ model VarianteProducto {
   nombreVariante String    @map("nombre_variante") @db.VarChar(100)
   imagenUrl      String?   @map("imagen_url")
   precioVenta    Decimal   @map("precio_venta") @db.Decimal(10, 2)
+  costoUnitario  Decimal?  @map("costo_unitario") @db.Decimal(10, 2)
   stockActual    Int       @default(0) @map("stock_actual")
   stockMinimo    Int       @default(5) @map("stock_minimo")
   fechaCaducidad DateTime? @map("fecha_caducidad") @db.Date
@@ -85,23 +88,26 @@ model VarianteProducto {
   alertaLeida    Boolean   @default(false) @map("alerta_leida")
   activo         Boolean   @default(true)
 
-  producto    Producto          @relation(fields: [productoId], references: [id], onDelete: Cascade)
-  detalles    DetalleVenta[]
-  movimientos MovimientoStock[]
-  alertas     Alerta[]
+  producto         Producto           @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  detalles         DetalleVenta[]
+  movimientos      MovimientoStock[]
+  alertas          Alerta[]
+  historialPrecios HistorialPrecio[]
 
   @@unique([tenantId, sku], name: "unique_sku_per_tenant")
   @@map("variantes_producto")
 }
 
 model Venta {
-  id        String      @id @default(uuid())
-  tenantId  String      @map("tenant_id")
-  usuarioId String      @map("usuario_id")
-  total     Decimal     @db.Decimal(10, 2)
-  descuento Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
-  estado    EstadoVenta @default(PENDIENTE)
-  createdAt DateTime    @default(now()) @map("created_at")
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  usuarioId   String      @map("usuario_id")
+  total       Decimal     @db.Decimal(10, 2)
+  descuento   Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
+  notas       String?     @db.Text
+  metodoPago  MetodoPago  @default(EFECTIVO) @map("metodo_pago")
+  estado      EstadoVenta @default(PENDIENTE)
+  createdAt   DateTime    @default(now()) @map("created_at")
 
   tenant   Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   usuario  Usuario        @relation(fields: [usuarioId], references: [id])
@@ -153,6 +159,18 @@ model Alerta {
   @@map("alertas")
 }
 
+model HistorialPrecio {
+  id             String   @id @default(uuid())
+  varianteId     String   @map("variante_id")
+  precioAnterior Decimal  @map("precio_anterior") @db.Decimal(10, 2)
+  precioNuevo    Decimal  @map("precio_nuevo") @db.Decimal(10, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  variante VarianteProducto @relation(fields: [varianteId], references: [id], onDelete: Cascade)
+
+  @@map("historial_precios")
+}
+
 enum Rol {
   OWNER
   MANAGER
@@ -175,4 +193,10 @@ enum TipoMovimiento {
 enum TipoAlerta {
   BAJO_STOCK
   CADUCIDAD_PROXIMA
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
 }

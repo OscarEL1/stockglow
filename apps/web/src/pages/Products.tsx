@@ -2,15 +2,25 @@ import { useState } from 'react'
 import { Layout } from '../components/Layout'
 import { Toast } from '../components/Toast'
 import { useToast } from '../hooks/useToast'
-import { useProducts, type Product } from '../hooks/useProducts'
+import {
+  useProducts,
+  type Product,
+  type ProductStatus,
+} from '../hooks/useProducts'
+
 import { useRole } from '../hooks/useRole'
 import { AddProductModal } from '../components/AddProductModal'
 import { EditProductModal } from '../components/EditProductModal'
-import { AlertTriangle, Pencil, Trash2 } from 'lucide-react'
+import { AlertTriangle, Archive, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useDeleteProduct } from '../hooks/useDeleteProduct'
+import { useArchiveProduct } from '../hooks/useArchiveProduct'
+import { useRestoreProduct } from '../hooks/useRestoreProduct'
 
 export function Products() {
-  const { data: products = [], isLoading, error } = useProducts()
+  const [statusFilter, setStatusFilter] = useState<ProductStatus>('active')
+
+  const { data: products = [], isLoading, error } = useProducts(statusFilter)
+
   const { isAdmin } = useRole()
   const { toast, showToast, hideToast } = useToast()
 
@@ -18,8 +28,13 @@ export function Products() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showProductModal, setShowProductModal] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [productToArchive, setProductToArchive] = useState<Product | null>(null)
 
   const { mutate: deleteProduct, isPending: isDeleting } = useDeleteProduct()
+
+  const { mutate: archiveProduct, isPending: isArchiving } = useArchiveProduct()
+
+  const { mutate: restoreProduct, isPending: isRestoring } = useRestoreProduct()
 
   function handleConfirmDelete() {
     if (!productToDelete) return
@@ -53,6 +68,40 @@ export function Products() {
       },
     })
   }
+  function handleConfirmArchive() {
+    if (!productToArchive) return
+
+    archiveProduct(productToArchive.id, {
+      onSuccess: () => {
+        showToast('Producto archivado correctamente', 'success')
+        setProductToArchive(null)
+      },
+
+      onError: (mutationError: Error) => {
+        showToast(
+          mutationError.message || 'No se pudo archivar el producto',
+          'error'
+        )
+
+        setProductToArchive(null)
+      },
+    })
+  }
+
+  function handleRestoreProduct(product: Product) {
+    restoreProduct(product.id, {
+      onSuccess: () => {
+        showToast('Producto restaurado correctamente', 'success')
+      },
+
+      onError: (mutationError: Error) => {
+        showToast(
+          mutationError.message || 'No se pudo restaurar el producto',
+          'error'
+        )
+      },
+    })
+  }
 
   const filteredProducts = products.filter((product) => {
     const term = search.trim().toLowerCase()
@@ -78,6 +127,38 @@ export function Products() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:flex-row xl:w-auto">
+          <div className="inline-flex h-12 shrink-0 rounded-2xl border border-[#F1DDE5] bg-white p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('active')
+                setSearch('')
+              }}
+              className={`rounded-xl px-4 text-sm font-bold transition ${
+                statusFilter === 'active'
+                  ? 'bg-[#E85D8C] text-white'
+                  : 'text-[#7A7480] hover:bg-[#FFF1F5]'
+              }`}
+            >
+              Activos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('archived')
+                setSearch('')
+              }}
+              className={`rounded-xl px-4 text-sm font-bold transition ${
+                statusFilter === 'archived'
+                  ? 'bg-[#6F6875] text-white'
+                  : 'text-[#7A7480] hover:bg-gray-100'
+              }`}
+            >
+              Archivados
+            </button>
+          </div>
+
           <input
             type="text"
             value={search}
@@ -86,7 +167,7 @@ export function Products() {
             className="h-12 w-full rounded-2xl border border-[#F1DDE5] bg-white px-5 text-sm text-[#2D2A32] outline-none transition placeholder:text-[#9B95A1] focus:border-[#E85D8C] focus:ring-4 focus:ring-[#E85D8C]/10 sm:min-w-[300px]"
           />
 
-          {isAdmin && (
+          {isAdmin && statusFilter === 'active' && (
             <button
               type="button"
               onClick={() => setShowProductModal(true)}
@@ -118,7 +199,9 @@ export function Products() {
         <div className="overflow-hidden rounded-2xl border border-[#F1DDE5] bg-white shadow-sm">
           <div className="border-b border-[#F1DDE5] px-6 py-5">
             <h2 className="text-lg font-bold text-[#2D2A32]">
-              Lista de productos
+              {statusFilter === 'active'
+                ? 'Productos activos'
+                : 'Productos archivados'}
             </h2>
 
             <p className="mt-1 text-sm text-[#7A7480]">
@@ -130,7 +213,9 @@ export function Products() {
           {filteredProducts.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="font-semibold text-[#2D2A32]">
-                No se encontraron productos
+                {statusFilter === 'active'
+                  ? 'No se encontraron productos activos'
+                  : 'No hay productos archivados'}
               </p>
             </div>
           ) : (
@@ -197,25 +282,51 @@ export function Products() {
                       {isAdmin && (
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProduct(product)}
-                              title="Editar producto"
-                              aria-label={`Editar ${product.nombre}`}
-                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#F1DDE5] text-[#E85D8C] transition hover:border-[#E85D8C] hover:bg-[#FFF1F5]"
-                            >
-                              <Pencil size={17} />
-                            </button>
+                            {statusFilter === 'active' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProduct(product)}
+                                  title="Editar producto"
+                                  aria-label={`Editar ${product.nombre}`}
+                                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#F1DDE5] text-[#E85D8C] transition hover:border-[#E85D8C] hover:bg-[#FFF1F5]"
+                                >
+                                  <Pencil size={17} />
+                                </button>
 
-                            <button
-                              type="button"
-                              onClick={() => setProductToDelete(product)}
-                              title="Eliminar producto"
-                              aria-label={`Eliminar ${product.nombre}`}
-                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-500 transition hover:border-red-500 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
-                            >
-                              <Trash2 size={17} />
-                            </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setProductToArchive(product)}
+                                  title="Archivar producto"
+                                  aria-label={`Archivar ${product.nombre}`}
+                                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-200 text-amber-600 transition hover:border-amber-500 hover:bg-amber-50"
+                                >
+                                  <Archive size={17} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setProductToDelete(product)}
+                                  title="Eliminar producto"
+                                  aria-label={`Eliminar ${product.nombre}`}
+                                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 text-red-500 transition hover:border-red-500 hover:bg-red-50"
+                                >
+                                  <Trash2 size={17} />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreProduct(product)}
+                                disabled={isRestoring}
+                                title="Restaurar producto"
+                                aria-label={`Restaurar ${product.nombre}`}
+                                className="inline-flex h-10 items-center gap-2 rounded-xl border border-green-200 px-4 text-sm font-bold text-green-700 transition hover:border-green-500 hover:bg-green-50 disabled:opacity-50"
+                              >
+                                <RotateCcw size={17} />
+                                {isRestoring ? 'Restaurando...' : 'Restaurar'}
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -246,6 +357,67 @@ export function Products() {
             setShowProductModal(false)
           }}
         />
+      )}
+
+      {productToArchive && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-[1px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="archive-product-title"
+        >
+          <div className="w-full max-w-[520px] rounded-[28px] bg-white px-8 py-8 shadow-2xl sm:px-10 sm:py-9">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                <Archive className="h-6 w-6 text-amber-600" />
+              </div>
+
+              <div>
+                <h2
+                  id="archive-product-title"
+                  className="text-xl font-extrabold text-[#2D2A32]"
+                >
+                  Archivar producto
+                </h2>
+
+                <p className="mt-3 text-sm leading-6 text-[#7A7480]">
+                  ¿Deseas archivar{' '}
+                  <span className="font-semibold text-[#2D2A32]">
+                    {productToArchive.nombre}
+                  </span>
+                  ?
+                </p>
+
+                <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                  <p className="text-sm font-medium text-amber-800">
+                    Desaparecerá del catálogo activo, pero conservará sus
+                    variantes, movimientos e historial de ventas.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setProductToArchive(null)}
+                disabled={isArchiving}
+                className="h-12 min-w-[130px] rounded-2xl border border-[#F1DDE5] bg-white px-6 text-sm font-bold text-[#2D2A32] disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmArchive}
+                disabled={isArchiving}
+                className="h-12 min-w-[160px] rounded-2xl bg-amber-500 px-6 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-50"
+              >
+                {isArchiving ? 'Archivando...' : 'Archivar producto'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {productToDelete && (

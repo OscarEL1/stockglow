@@ -2,6 +2,19 @@ import fp from 'fastify-plugin'
 import { AppError } from '../lib/errors.js'
 import { errorResponse } from '../lib/response.js'
 
+function getRetryAfterSeconds(error: unknown): number | undefined {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'retryAfter' in error &&
+    typeof (error as { retryAfter: unknown }).retryAfter === 'number'
+  ) {
+    return (error as { retryAfter: number }).retryAfter
+  }
+
+  return undefined
+}
+
 export const errorHandler = fp(async (fastify) => {
   // Rutas no encontradas
   fastify.setNotFoundHandler((request, reply) => {
@@ -53,15 +66,13 @@ export const errorHandler = fp(async (fastify) => {
 
     // Error de rate limit
     if (error.statusCode === 429) {
-      return reply
-        .status(429)
-        .send(
-          errorResponse(
-            'RATE_LIMIT_EXCEEDED',
-            'Demasiadas solicitudes, intenta mas tarde',
-            429
-          )
-        )
+      const retryAfter = getRetryAfterSeconds(error) ?? 60
+
+      return reply.status(429).send({
+        error: 'Demasiadas peticiones',
+        message: `Has excedido el limite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`,
+        retryAfter,
+      })
     }
 
     // Error inesperado — nunca exponer detalles al cliente

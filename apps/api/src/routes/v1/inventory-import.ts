@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
+import { sanitizeText } from '../../utils/sanitize.js'
 
 const EXPECTED_COLUMNS = [
   'producto_nombre',
@@ -422,10 +423,23 @@ export async function inventoryImportRoutes(fastify: FastifyInstance) {
           continue
         }
 
+        /*
+         * Sanitizamos recien despues de validar longitud sobre el texto
+         * crudo, para que los limites de caracteres reflejen lo que el
+         * usuario realmente escribio en el archivo.
+         */
+        const sanitizedProductoNombre = sanitizeText(row.producto_nombre)
+        const sanitizedProductoMarca = sanitizeText(row.producto_marca)
+        const sanitizedProductoCategoria = sanitizeText(row.producto_categoria)
+        const sanitizedProductoDescripcion = sanitizeText(
+          row.producto_descripcion
+        )
+        const sanitizedVarianteNombre = sanitizeText(row.variante_nombre)
+
         const productKey = createProductKey(
-          row.producto_nombre,
-          row.producto_marca,
-          row.producto_categoria
+          sanitizedProductoNombre,
+          sanitizedProductoMarca,
+          sanitizedProductoCategoria
         )
 
         const cachedProductId = productCache.get(productKey)
@@ -439,10 +453,10 @@ export async function inventoryImportRoutes(fastify: FastifyInstance) {
               const createdProduct = await tx.producto.create({
                 data: {
                   tenantId,
-                  nombre: row.producto_nombre,
-                  marca: row.producto_marca || null,
-                  categoria: row.producto_categoria || null,
-                  descripcion: row.producto_descripcion || null,
+                  nombre: sanitizedProductoNombre,
+                  marca: sanitizedProductoMarca || null,
+                  categoria: sanitizedProductoCategoria || null,
+                  descripcion: sanitizedProductoDescripcion || null,
                 },
                 select: {
                   id: true,
@@ -458,7 +472,7 @@ export async function inventoryImportRoutes(fastify: FastifyInstance) {
                 tenantId,
                 productoId: productId,
                 sku: row.sku,
-                nombreVariante: row.variante_nombre,
+                nombreVariante: sanitizedVarianteNombre,
                 imagenUrl: row.imagen_url || null,
                 precioVenta: price,
                 stockActual: currentStock,

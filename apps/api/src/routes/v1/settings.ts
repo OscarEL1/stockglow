@@ -4,12 +4,14 @@ import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
 import { getTenantCategories } from '../../lib/categories.js'
+import { sanitizeText } from '../../utils/sanitize.js'
 
 const updateSettingsSchema = z.object({
   nombre: z
     .string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
-    .optional(),
+    .optional()
+    .transform((value) => (value === undefined ? value : sanitizeText(value))),
   logoUrl: z.string().url('URL de logo inválida').nullable().optional(),
   umbralDiasCaducidad: z
     .number()
@@ -24,18 +26,47 @@ const updateSettingsSchema = z.object({
 })
 
 const createCategorySchema = z.object({
-  nombre: z.string().min(1, 'El nombre de la categoría es requerido').max(50),
+  nombre: z
+    .string()
+    .min(1, 'El nombre de la categoría es requerido')
+    .max(50)
+    .transform(sanitizeText),
 })
 
 export async function settingsRoutes(fastify: FastifyInstance) {
-  // GET /api/v1/settings
   fastify.get(
     '/',
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['settings'],
+        summary: 'Obtener configuración de la tienda',
+        description:
+          'Retorna la configuración actual: nombre, logo, umbral de caducidad y stock mínimo global.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Configuración de la tienda',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  nombre: { type: 'string' },
+                  logoUrl: { type: 'string', nullable: true },
+                  umbralDiasCaducidad: { type: 'number' },
+                  stockMinimoGlobal: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const tenant = await prisma.tenant.findUnique({
         where: { id: request.tenantId },
-        // 👇 AÑADIDO: Traemos también el umbral guardado
         select: {
           nombreTienda: true,
           logoUrl: true,
@@ -55,10 +86,62 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // PATCH /api/v1/settings
   fastify.patch(
     '/',
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['settings'],
+        summary: 'Actualizar configuración de la tienda',
+        description:
+          'Actualiza campos de configuración de forma parcial. Solo se modifican los campos enviados.',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          properties: {
+            nombre: {
+              type: 'string',
+              minLength: 2,
+              description: 'Nombre de la tienda',
+            },
+            logoUrl: {
+              type: 'string',
+              format: 'uri',
+              nullable: true,
+              description: 'URL del logo',
+            },
+            umbralDiasCaducidad: {
+              type: 'number',
+              minimum: 1,
+              description: 'Días de anticipación para alertas de caducidad',
+            },
+            stockMinimoGlobal: {
+              type: 'number',
+              minimum: 0,
+              description: 'Stock mínimo por defecto para nuevas variantes',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Configuración actualizada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  nombre: { type: 'string' },
+                  logoUrl: { type: 'string', nullable: true },
+                  umbralDiasCaducidad: { type: 'number' },
+                  stockMinimoGlobal: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const input = updateSettingsSchema.parse(request.body)
 
@@ -87,10 +170,38 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/settings/categories
   fastify.get(
     '/categories',
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['settings'],
+        summary: 'Listar categorías de la tienda',
+        description:
+          'Retorna todas las categorías configuradas para esta tienda.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Lista de categorías',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    nombre: { type: 'string' },
+                    tenantId: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const categorias = await getTenantCategories(request.tenantId)
 
@@ -98,10 +209,46 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // POST /api/v1/settings/categories
   fastify.post(
     '/categories',
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['settings'],
+        summary: 'Crear categoría',
+        description: 'Agrega una nueva categoría a la tienda. Nombre único por tienda.',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['nombre'],
+          properties: {
+            nombre: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 50,
+              description: 'Nombre de la categoría',
+            },
+          },
+        },
+        response: {
+          201: {
+            description: 'Categoría creada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  nombre: { type: 'string' },
+                  tenantId: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const { tenantId } = request
       const input = createCategorySchema.parse(request.body)
@@ -120,10 +267,43 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // DELETE /api/v1/settings/categories/:nombre
   fastify.delete(
     '/categories/:nombre',
-    { preHandler: [fastify.authenticate] },
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['settings'],
+        summary: 'Eliminar categoría',
+        description:
+          'Elimina una categoría y desasocia todos los productos que la usaban. Los productos quedan sin categoría.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['nombre'],
+          properties: {
+            nombre: {
+              type: 'string',
+              description: 'Nombre de la categoría a eliminar (URL-encoded)',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Categoría eliminada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  nombre: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const { tenantId } = request
       const nombre = decodeURIComponent(
