@@ -324,11 +324,31 @@ export async function saleRoutes(fastify: FastifyInstance) {
 
       const { fecha } = request.query as { fecha?: string }
 
-      const date = fecha ? new Date(fecha) : new Date()
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      const now = new Date()
+      const target = fecha
+        ? (() => {
+            const [y, m, d] = fecha.split('-').map(Number)
+            return new Date(y, m - 1, d)
+          })()
+        : now
+      const startOfDay = new Date(
+        target.getFullYear(),
+        target.getMonth(),
+        target.getDate(),
+        0,
+        0,
+        0,
+        0
+      )
+      const endOfDay = new Date(
+        target.getFullYear(),
+        target.getMonth(),
+        target.getDate(),
+        23,
+        59,
+        59,
+        999
+      )
 
       const ventas = await prisma.venta.findMany({
         where: {
