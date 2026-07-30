@@ -7,6 +7,7 @@ export interface StoreSettings {
   logoUrl: string | null
   umbralDiasCaducidad: number
   stockMinimoGlobal: number
+  descuentoPorcentajeFrecuente: number
 }
 
 export interface UpdateSettingsData {
@@ -14,6 +15,7 @@ export interface UpdateSettingsData {
   logoUrl?: string | null
   umbralDiasCaducidad?: number
   stockMinimoGlobal?: number
+  descuentoPorcentajeFrecuente?: number
 }
 
 export function useSettings() {

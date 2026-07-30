@@ -20,6 +20,7 @@ export interface Sale {
   id: string
   total: string
   descuento?: number
+  clienteFrecuente?: boolean
   notas?: string | null
   metodoPago: PaymentMethod
   estado: 'PENDIENTE' | 'COMPLETADA' | 'CANCELADA'

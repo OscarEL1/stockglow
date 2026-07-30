@@ -98,8 +98,11 @@ export function generateReceiptPDF(sale: Sale, tenantName: string) {
 
   // Descuento
   if (Number(sale.descuento ?? 0) > 0) {
+    const discountLabel = sale.clienteFrecuente
+      ? 'Descuento frecuente'
+      : 'Descuento'
     doc.text(
-      `Descuento: -$${Number(sale.descuento).toFixed(2)}`,
+      `${discountLabel}: -$${Number(sale.descuento).toFixed(2)}`,
       70,
       finalY + 15,
       {
