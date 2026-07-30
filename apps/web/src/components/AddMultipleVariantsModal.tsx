@@ -213,9 +213,7 @@ export function AddMultipleVariantsModal({
               {rows.length} de 10 filas
             </div>
             {rows.length >= 10 && (
-              <p className="text-xs text-[#C64270]">
-                Límite alcanzado
-              </p>
+              <p className="text-xs text-[#C64270]">Límite alcanzado</p>
             )}
           </div>
         </div>

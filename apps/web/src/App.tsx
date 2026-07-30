@@ -13,6 +13,7 @@ import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
 import { GlobalToast } from './components/GlobalToast'
+import { Suppliers } from './pages/Suppliers'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -131,6 +132,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Products />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/suppliers"
+          element={
+            <ProtectedRoute>
+              <Suppliers />
             </ProtectedRoute>
           }
         />

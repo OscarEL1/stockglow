@@ -108,7 +108,8 @@ export async function variantRoutes(fastify: FastifyInstance) {
                   stockMinimo: {
                     type: 'number',
                     minimum: 0,
-                    description: 'Stock mínimo (usa el global de la tienda si se omite)',
+                    description:
+                      'Stock mínimo (usa el global de la tienda si se omite)',
                   },
                   fechaCaducidad: {
                     type: 'string',

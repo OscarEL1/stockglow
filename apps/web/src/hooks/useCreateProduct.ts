@@ -6,6 +6,8 @@ interface CreateProductData {
   nombre: string
   marca?: string
   categoria?: string
+  descripcion?: string
+  proveedorId?: string | null
 }
 
 export function useCreateProduct() {
@@ -22,6 +24,6 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
-    }
+    },
   })
 }

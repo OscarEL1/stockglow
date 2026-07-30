@@ -180,10 +180,9 @@ export function VariantDetailModal({ variant, onClose }: Props) {
     isError,
   } = useVariantMovements(variant.id)
 
-  const {
-    data: priceHistory = [],
-    isLoading: priceLoading,
-  } = usePriceHistory(variant.id)
+  const { data: priceHistory = [], isLoading: priceLoading } = usePriceHistory(
+    variant.id
+  )
 
   const stockActual = Number(variant.stockActual)
   const stockMinimo = Number(variant.stockMinimo)
@@ -467,14 +466,18 @@ export function VariantDetailModal({ variant, onClose }: Props) {
                   const subio = nuevo > anterior
                   return (
                     <div key={entry.id} className="relative flex gap-4 pb-4">
-                      <div className={`relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
-                        index === 0
-                          ? 'border-pink-300 bg-pink-50'
-                          : 'border-gray-200 bg-white'
-                      }`}>
-                        <TrendingUp className={`h-4 w-4 ${
-                          subio ? 'text-emerald-500' : 'text-red-400'
-                        } ${subio ? '' : 'rotate-180 transform'}`} />
+                      <div
+                        className={`relative z-10 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
+                          index === 0
+                            ? 'border-pink-300 bg-pink-50'
+                            : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <TrendingUp
+                          className={`h-4 w-4 ${
+                            subio ? 'text-emerald-500' : 'text-red-400'
+                          } ${subio ? '' : 'rotate-180 transform'}`}
+                        />
                       </div>
                       <div className="flex flex-1 items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
                         <div>
@@ -483,17 +486,25 @@ export function VariantDetailModal({ variant, onClose }: Props) {
                               ${anterior.toFixed(2)}
                             </span>
                             <span className="text-gray-400">→</span>
-                            <span className={`text-sm font-bold ${
-                              subio ? 'text-emerald-600' : 'text-red-600'
-                            }`}>
+                            <span
+                              className={`text-sm font-bold ${
+                                subio ? 'text-emerald-600' : 'text-red-600'
+                              }`}
+                            >
                               ${nuevo.toFixed(2)}
                             </span>
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                              subio
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-red-50 text-red-700'
-                            }`}>
-                              {subio ? '+' : ''}{(((nuevo - anterior) / anterior) * 100).toFixed(1)}%
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                subio
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-red-50 text-red-700'
+                              }`}
+                            >
+                              {subio ? '+' : ''}
+                              {(((nuevo - anterior) / anterior) * 100).toFixed(
+                                1
+                              )}
+                              %
                             </span>
                           </div>
                           {index === 0 && (

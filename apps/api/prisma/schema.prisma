@@ -23,6 +23,7 @@ model Tenant {
   ventas     Venta[]
   alertas    Alerta[]
   categorias Categoria[]
+  proveedores Proveedor[]
 
   @@map("tenants")
 }
@@ -37,6 +38,20 @@ model Categoria {
 
   @@unique([tenantId, nombre])
   @@map("categorias")
+}
+
+model Proveedor {
+  id        String     @id @default(uuid())
+  tenantId  String     @map("tenant_id")
+  nombre    String     @db.VarChar(150)
+  contacto  String?    @db.VarChar(100)
+  telefono  String?    @db.VarChar(30)
+  email     String?    @db.VarChar(100)
+  createdAt DateTime   @default(now()) @map("created_at")
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productos Producto[]
+
+  @@map("proveedores")
 }
 
 model Usuario {
@@ -58,6 +73,7 @@ model Usuario {
 model Producto {
   id          String   @id @default(uuid())
   tenantId    String   @map("tenant_id")
+  proveedorId String?  @map("proveedor_id")
   nombre      String   @db.VarChar(150)
   marca       String?  @db.VarChar(50)
   categoria   String?  @db.VarChar(50)
@@ -66,6 +82,7 @@ model Producto {
   createdAt   DateTime @default(now()) @map("created_at")
 
   tenant    Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  proveedor Proveedor?         @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
   variantes VarianteProducto[]
 
   @@index([tenantId, activo])

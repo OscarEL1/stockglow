@@ -17,6 +17,7 @@ export const createProductSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value === undefined ? value : sanitizeText(value))),
+  proveedorId: z.string().uuid().optional().nullable(),
 })
 
 export const updateProductSchema = createProductSchema.partial()
