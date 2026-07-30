@@ -1,5 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { Package, CheckCircle2, AlertTriangle, PackageX } from 'lucide-react'
+import {
+  Package,
+  CheckCircle2,
+  AlertTriangle,
+  PackageX,
+  Percent,
+} from 'lucide-react'
 import type { DashboardSummary as DashboardSummaryData } from '../hooks/useDashboardSummary'
 
 interface Props {
@@ -20,7 +26,7 @@ export function DashboardSummary({
   if (isLoading) {
     return (
       <div className="flex flex-wrap gap-6">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(6)].map((_, i) => (
           <div
             key={i}
             className="h-36 min-w-[168px] flex-1 animate-pulse rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
@@ -139,6 +145,54 @@ export function DashboardSummary({
           Variantes sin unidades disponibles
         </p>
       </button>
+
+      {/* HU-081: Rentabilidad promedio */}
+      <div
+        className={`relative min-w-[168px] flex-1 flex flex-col items-center overflow-hidden rounded-2xl border p-6 text-center shadow-sm transition hover:shadow-md ${
+          summary.margenPromedio !== null
+            ? summary.margenPromedio >= 30
+              ? 'border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-white'
+              : 'border-amber-100 bg-gradient-to-br from-amber-50/50 to-white'
+            : 'border-gray-100 bg-gradient-to-br from-gray-50/50 to-white'
+        }`}
+      >
+        <div
+          className={`mb-3 rounded-xl p-3 ${
+            summary.margenPromedio !== null
+              ? summary.margenPromedio >= 30
+                ? 'bg-emerald-100/60 text-emerald-600'
+                : 'bg-amber-100/60 text-amber-600'
+              : 'bg-gray-100/60 text-gray-500'
+          }`}
+        >
+          <Percent className="h-6 w-6" />
+        </div>
+        <p
+          className={`text-xs font-semibold uppercase tracking-wider ${
+            summary.margenPromedio !== null
+              ? summary.margenPromedio >= 30
+                ? 'text-emerald-600'
+                : 'text-amber-600'
+              : 'text-gray-500'
+          }`}
+        >
+          Rentabilidad
+        </p>
+        {summary.margenPromedio !== null ? (
+          <>
+            <p className="mt-2 text-3xl font-bold text-[#2D2A32]">
+              {summary.margenPromedio.toFixed(1)}%
+            </p>
+            <p className="mt-3 text-xs text-[#7A7480]">
+              Margen de ganancia promedio
+            </p>
+          </>
+        ) : (
+          <p className="mt-3 text-xs text-[#7A7480] leading-relaxed">
+            Agrega costos para ver la rentabilidad
+          </p>
+        )}
+      </div>
     </div>
   )
 }

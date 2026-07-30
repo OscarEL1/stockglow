@@ -9,7 +9,6 @@ import { Errors } from '../../lib/errors.js'
 
 const SALES_METRICS_PERIODS = ['hoy', 'semana', 'mes'] as const
 
-
 export async function reportsRoutes(fastify: FastifyInstance) {
   // GET /api/v1/reports/sales-metrics
   fastify.get(
@@ -92,7 +91,6 @@ export async function reportsRoutes(fastify: FastifyInstance) {
     async (request: any, reply) => {
       const tenantId = request.tenantId
 
-      // Generar los últimos 7 días
       const days = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date()
         d.setDate(d.getDate() - (6 - i))
@@ -110,7 +108,6 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         },
       })
 
-      // Agrupar ventas por fecha (YYYY-MM-DD)
       const salesMap = ventas.reduce(
         (acc, venta) => {
           const dateStr = venta.createdAt.toISOString().split('T')[0]
@@ -120,7 +117,6 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         {} as Record<string, number>
       )
 
-      // Formatear respuesta con los 7 días (incluyendo $0 para los vacíos)
       const data = days.map((date) => {
         const dateStr = date.toISOString().split('T')[0]
         const formattedDate = new Intl.DateTimeFormat('es-MX', {
@@ -174,7 +170,6 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         },
       })
 
-      // Agrupar por productoId
       const productMap = detalles.reduce(
         (acc, detalle) => {
           const prod = detalle.variante.producto
@@ -192,7 +187,6 @@ export async function reportsRoutes(fastify: FastifyInstance) {
         {} as Record<string, any>
       )
 
-      // Ordenar por cantidadVendida y tomar los top 5
       const topProducts = Object.values(productMap)
         .sort((a, b) => b.cantidadVendida - a.cantidadVendida)
         .slice(0, 5)
@@ -200,6 +194,7 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(topProducts))
     }
   )
+
   // GET /api/v1/reports/employees-ranking
   fastify.get(
     '/employees-ranking',

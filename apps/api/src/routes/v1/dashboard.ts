@@ -31,11 +31,15 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           stockActual: true,
           precioVenta: true,
           stockMinimo: true,
+          costoUnitario: true,
         },
       })
 
       let totalValue = 0
       let totalAlerts = 0
+
+      let sumaMargenes = 0
+      let variantesConCosto = 0
 
       for (const variant of variants) {
         const stock = variant.stockActual
@@ -45,7 +49,20 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
         if (stock <= variant.stockMinimo) {
           totalAlerts++
         }
+
+        if (variant.costoUnitario !== null) {
+          const costo = Number(variant.costoUnitario)
+          if (precio > 0 && costo > 0) {
+            sumaMargenes += ((precio - costo) / precio) * 100
+            variantesConCosto++
+          }
+        }
       }
+
+      const margenPromedio =
+        variantesConCosto > 0
+          ? Math.round((sumaMargenes / variantesConCosto) * 10) / 10
+          : null
 
       const totalVariants = variants.length
 
@@ -65,7 +82,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
       // Determine start of previous month
       const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
       startPrevMonth.setHours(0, 0, 0, 0)
-      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1) // last ms of previous month
+      const endPrevMonth = new Date(startCurrentMonth.getTime() - 1)
 
       // Sales for current month
       const currentMonthQuery = await prisma.venta.aggregate({
@@ -115,6 +132,7 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
           disponibles,
           stockBajo,
           agotados,
+          margenPromedio,
         })
       )
     }

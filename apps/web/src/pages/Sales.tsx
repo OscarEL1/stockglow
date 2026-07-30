@@ -19,6 +19,14 @@ interface SaleItemLocal {
   stockActual: number
 }
 
+export type PaymentMethod = 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA'
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  EFECTIVO: 'Efectivo',
+  TARJETA: 'Tarjeta',
+  TRANSFERENCIA: 'Transferencia',
+}
+
 const ESTADO_STYLES: Record<Sale['estado'], string> = {
   COMPLETADA: 'bg-green-100 text-green-700',
   PENDIENTE: 'bg-yellow-100 text-yellow-700',
@@ -96,7 +104,7 @@ function SaleDetailModal({
           </button>
         </div>
 
-        {/* Meta: estado + vendedor + total */}
+        {/* Meta: estado + vendedor + método de pago + total */}
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <span
             className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${ESTADO_STYLES[sale.estado]}`}
@@ -113,6 +121,14 @@ function SaleDetailModal({
               </span>
             </span>
           )}
+
+          <span className="text-sm text-[#7A7480]">
+            Método de pago:{' '}
+            <span className="font-medium text-[#2D2A32]">
+              {PAYMENT_METHOD_LABELS[sale.metodoPago]}
+            </span>
+          </span>
+
           <span className="ml-auto text-lg font-bold text-[#2D2A32]">
             Total:{' '}
             <span className="text-[#E85D8C]">
@@ -125,6 +141,17 @@ function SaleDetailModal({
           <p className="mb-3 text-right text-sm font-semibold text-red-600">
             Descuento: -${Number(sale.descuento).toFixed(2)}
           </p>
+        )}
+
+        {sale.notas && (
+          <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-blue-600">
+              Notas
+            </p>
+            <p className="whitespace-pre-wrap text-sm text-blue-900">
+              {sale.notas}
+            </p>
+          </div>
         )}
 
         {/* Tabla de productos */}
@@ -358,6 +385,8 @@ export function Sales() {
   const discountError =
     descuento > subtotal ? 'El descuento no puede ser mayor al total' : null
 
+  const [metodoPago, setMetodoPago] = useState<PaymentMethod>('EFECTIVO')
+
   function handleSelectVariant(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = e.target.value
     if (!id) return
@@ -413,11 +442,13 @@ export function Sales() {
           cantidad: i.cantidad,
         })),
         descuento,
-        notas: notas.trim() ? notas.trim() : undefined,
+        notas: notas.trim() || null,
+        metodoPago,
       })
       setItems([])
       setDescuento(0)
       setNotas('')
+      setMetodoPago('EFECTIVO')
       setPage(1)
     } catch (err) {
       setError(
@@ -582,11 +613,50 @@ export function Sales() {
             </div>
           </div>
 
+          <div className="mb-4 flex flex-col gap-2 sm:max-w-xs">
+            <label
+              htmlFor="metodoPago"
+              className="text-sm font-medium text-gray-700"
+            >
+              Método de pago
+            </label>
+
+            <select
+              id="metodoPago"
+              value={metodoPago}
+              onChange={(e) => setMetodoPago(e.target.value as PaymentMethod)}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            >
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TARJETA">Tarjeta</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+            </select>
+          </div>
+
           {descuento > 0 && (
             <p className="mb-2 text-right text-sm font-semibold text-red-600">
               Descuento: -${descuento.toFixed(2)}
             </p>
           )}
+
+          <div className="mb-4">
+            <label
+              htmlFor="notas"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Notas u observaciones{' '}
+              <span className="text-gray-400">(opcional)</span>
+            </label>
+            <textarea
+              id="notas"
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+              placeholder="Nombre del cliente, instrucciones especiales..."
+              rows={2}
+              maxLength={500}
+              className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+            />
+          </div>
 
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold text-gray-900">
@@ -735,6 +805,9 @@ export function Sales() {
                       <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Estado
                       </th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Método de pago
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                         Vendedor
                       </th>
@@ -754,6 +827,26 @@ export function Sales() {
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-gray-900">
                           ${parseFloat(sale.total).toFixed(2)}
+                          {sale.notas && (
+                            <span
+                              title="Tiene nota"
+                              className="ml-1.5 inline-flex text-blue-400"
+                            >
+                              <svg
+                                className="h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M7 8h10M7 12h6m-6 4h3M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"
+                                />
+                              </svg>
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span
@@ -761,6 +854,9 @@ export function Sales() {
                           >
                             {sale.estado}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-gray-700">
+                          {PAYMENT_METHOD_LABELS[sale.metodoPago]}
                         </td>
                         <td className="px-4 py-3 text-gray-700">
                           {sale.usuario?.nombre ?? '—'}
