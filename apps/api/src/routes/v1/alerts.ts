@@ -46,7 +46,7 @@ export async function alertRoutes(fastify: FastifyInstance) {
       // Alertas persistidas (hoy: BAJO_STOCK, generadas al confirmar una venta)
       const alertasStock = await prisma.alerta.findMany({
         where: {
-          tenantId: 'org_3FJDhT6EvcRYRaLhGr8Suxa6xyG',
+          tenantId,
           leida: false,
         },
         include: {

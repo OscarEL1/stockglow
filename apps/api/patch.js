@@ -1,1 +1,0 @@
-const { Client } = require('pg'); const client = new Client({ connectionString: process.env.DATABASE_URL }); client.connect().then(() => client.query('ALTER TABLE "productos" ADD COLUMN IF NOT EXISTS "proveedor_id" TEXT;')).then(() => { console.log('? Columna agregada con exito!'); client.end(); }).catch(e => console.error(e));

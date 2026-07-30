@@ -19,7 +19,7 @@ import { alertRoutes } from './routes/v1/alerts.js'
 import { reportsRoutes } from './routes/v1/reports.js'
 import { settingsRoutes } from './routes/v1/settings.js'
 import { inventoryImportRoutes } from './routes/v1/inventory-import.js'
-import { supplierRoutes } from './routes/v1/suppliers'
+import { supplierRoutes } from './routes/v1/suppliers.js'
 
 const fastify = Fastify({
   logger: {

@@ -20,9 +20,6 @@ export function useSuppliers() {
     queryKey: ['suppliers'],
     queryFn: async () => {
       const response = await fetchWithAuth(getToken, '/api/v1/suppliers')
-      if (Array.isArray(response)) {
-        return response as Supplier[]
-      }
       return (response?.data || []) as Supplier[]
     },
   })

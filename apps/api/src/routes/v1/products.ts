@@ -50,21 +50,18 @@ export async function productRoutes(fastify: FastifyInstance) {
       }
       const [products, total] = await Promise.all([
         prisma.producto.findMany({
-          where: {
-            tenantId: 'org_3FJDhT6EvcRYRaLhGr8Suxa6xyG',
-            activo: true,
-          },
+          where,
           include: {
             variantes: true,
             proveedor: true,
           },
-          skip: 0,
-          take: 20,
+          skip,
+          take,
           orderBy: {
             createdAt: 'desc',
           },
         }),
-        // ...
+        prisma.producto.count({ where }),
       ])
 
       return reply.send(
