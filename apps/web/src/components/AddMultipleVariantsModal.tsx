@@ -201,8 +201,22 @@ export function AddMultipleVariantsModal({
             </p>
           </div>
 
-          <div className="rounded-2xl bg-[#FFF1F5] px-4 py-3 text-sm font-semibold text-[#C64270]">
-            {rows.length} de 10 filas
+          <div className="flex flex-col items-end gap-1">
+            <div
+              className="rounded-2xl bg-[#FFF1F5] px-4 py-3 text-sm font-semibold text-[#C64270]"
+              title={
+                rows.length >= 10
+                  ? 'Has alcanzado el límite máximo de 10 variantes por operación'
+                  : `Puedes agregar hasta ${10 - rows.length} fila${10 - rows.length === 1 ? '' : 's'} más`
+              }
+            >
+              {rows.length} de 10 filas
+            </div>
+            {rows.length >= 10 && (
+              <p className="text-xs text-[#C64270]">
+                Límite alcanzado
+              </p>
+            )}
           </div>
         </div>
 

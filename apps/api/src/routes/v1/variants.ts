@@ -61,6 +61,126 @@ export async function variantRoutes(fastify: FastifyInstance) {
     '/bulk',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['inventory'],
+        summary: 'Crear variantes en lote',
+        description:
+          'Registra entre 1 y 10 variantes para un mismo producto en una sola operación. Valida cada fila de forma independiente: las filas válidas se crean aunque otras tengan errores. Detecta SKU duplicados dentro de la carga y SKU existentes en la tienda.',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['productoId', 'variantes'],
+          properties: {
+            productoId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'ID del producto al que pertenecen las variantes',
+            },
+            variantes: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 10,
+              description: 'Lista de variantes a crear',
+              items: {
+                type: 'object',
+                required: ['sku', 'nombreVariante', 'precioVenta'],
+                properties: {
+                  sku: {
+                    type: 'string',
+                    maxLength: 50,
+                    description: 'Código SKU único',
+                  },
+                  nombreVariante: {
+                    type: 'string',
+                    maxLength: 100,
+                    description: 'Nombre o tono de la variante',
+                  },
+                  precioVenta: {
+                    type: 'number',
+                    exclusiveMinimum: 0,
+                    description: 'Precio de venta',
+                  },
+                  stockActual: {
+                    type: 'number',
+                    minimum: 0,
+                    description: 'Stock actual (default: 0)',
+                  },
+                  stockMinimo: {
+                    type: 'number',
+                    minimum: 0,
+                    description: 'Stock mínimo (usa el global de la tienda si se omite)',
+                  },
+                  fechaCaducidad: {
+                    type: 'string',
+                    format: 'date',
+                    nullable: true,
+                    description: 'Fecha de caducidad (YYYY-MM-DD)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        response: {
+          201: {
+            description: 'Todas las variantes se crearon correctamente',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  creadas: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        fila: { type: 'number' },
+                        id: { type: 'string' },
+                        sku: { type: 'string' },
+                        nombreVariante: { type: 'string' },
+                      },
+                    },
+                  },
+                  errores: { type: 'array' },
+                  totalSolicitadas: { type: 'number' },
+                  totalCreadas: { type: 'number' },
+                  totalErrores: { type: 'number' },
+                },
+              },
+            },
+          },
+          207: {
+            description: 'Resultado parcial: algunas variantes no se crearon',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  creadas: { type: 'array' },
+                  errores: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        fila: { type: 'number' },
+                        sku: { type: 'string' },
+                        code: { type: 'string' },
+                        message: { type: 'string' },
+                        campo: { type: 'string' },
+                      },
+                    },
+                  },
+                  totalSolicitadas: { type: 'number' },
+                  totalCreadas: { type: 'number' },
+                  totalErrores: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const input = createBulkVariantsSchema.parse(request.body)
