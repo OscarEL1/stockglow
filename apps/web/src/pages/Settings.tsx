@@ -51,6 +51,11 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
   )
   const [stockMinimoError, setStockMinimoError] = useState('')
 
+  const [descuentoPorcentajeFrecuente, setDescuentoPorcentajeFrecuente] = useState(
+    settings.descuentoPorcentajeFrecuente
+  )
+  const [descuentoFrecuenteError, setDescuentoFrecuenteError] = useState('')
+
   const [currentLogoUrl, setCurrentLogoUrl] = useState(settings.logoUrl)
   const [logoRemoved, setLogoRemoved] = useState(false)
   const [showLogoInput, setShowLogoInput] = useState(!settings.logoUrl)
@@ -93,6 +98,19 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
       setStockMinimoError('')
     }
 
+    if (
+      isNaN(descuentoPorcentajeFrecuente) ||
+      descuentoPorcentajeFrecuente < 0 ||
+      descuentoPorcentajeFrecuente > 100
+    ) {
+      setDescuentoFrecuenteError(
+        'El descuento debe ser un número entre 0 y 100'
+      )
+      hasError = true
+    } else {
+      setDescuentoFrecuenteError('')
+    }
+
     if (hasError) return
 
     let finalLogoUrl: string | null | undefined = undefined
@@ -117,6 +135,7 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
         logoUrl: finalLogoUrl,
         umbralDiasCaducidad: Math.floor(umbralDiasCaducidad),
         stockMinimoGlobal: Math.floor(stockMinimoGlobal),
+        descuentoPorcentajeFrecuente: Math.floor(descuentoPorcentajeFrecuente),
       },
       {
         onSuccess: () => {
@@ -253,6 +272,37 @@ function SettingsForm({ settings, onSuccess, onError }: SettingsFormProps) {
         {stockMinimoError && (
           <p className="mt-2 text-sm font-medium text-red-600">
             {stockMinimoError}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-2 block text-xs font-bold text-[#6F6875]">
+          Descuento para clientes frecuentes (%)
+        </label>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          value={isNaN(descuentoPorcentajeFrecuente) ? '' : descuentoPorcentajeFrecuente}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10)
+            setDescuentoPorcentajeFrecuente(val)
+            if (!isNaN(val) && val >= 0 && val <= 100) setDescuentoFrecuenteError('')
+          }}
+          className={`h-14 w-full rounded-2xl border bg-white px-5 text-sm text-[#2D2A32] outline-none transition focus:ring-4 ${
+            descuentoFrecuenteError
+              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+              : 'border-[#F1DDE5] focus:border-[#E85D8C] focus:ring-[#E85D8C]/10'
+          }`}
+        />
+        <p className="mt-1 text-[11px] text-[#8F8795]">
+          Porcentaje de descuento que se aplicará automáticamente al marcar un cliente como frecuente en una venta.
+        </p>
+        {descuentoFrecuenteError && (
+          <p className="mt-2 text-sm font-medium text-red-600">
+            {descuentoFrecuenteError}
           </p>
         )}
       </div>

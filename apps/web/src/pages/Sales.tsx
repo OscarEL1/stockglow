@@ -9,6 +9,7 @@ import { Layout } from '../components/Layout'
 import { useOrganization } from '@clerk/clerk-react'
 import { generateReceiptPDF } from '../lib/generateReceiptPDF'
 import { generateSalesReportPDF } from '../lib/generateSalesReportPDF'
+import { useSettings } from '../hooks/useSettings'
 
 interface SaleItemLocal {
   varianteId: string
@@ -129,6 +130,12 @@ function SaleDetailModal({
             </span>
           </span>
 
+          {sale.clienteFrecuente && (
+            <span className="inline-block rounded-full bg-pink-100 px-3 py-1 text-xs font-semibold text-[#E85D8C]">
+              Cliente frecuente
+            </span>
+          )}
+
           <span className="ml-auto text-lg font-bold text-[#2D2A32]">
             Total:{' '}
             <span className="text-[#E85D8C]">
@@ -139,7 +146,9 @@ function SaleDetailModal({
 
         {Number(sale.descuento ?? 0) > 0 && (
           <p className="mb-3 text-right text-sm font-semibold text-red-600">
-            Descuento: -${Number(sale.descuento).toFixed(2)}
+            {sale.clienteFrecuente
+              ? `Descuento frecuente: -${Number(sale.descuento).toFixed(2)}`
+              : `Descuento: -${Number(sale.descuento).toFixed(2)}`}
           </p>
         )}
 
@@ -301,11 +310,13 @@ export function Sales() {
   const { data: sales = [], isLoading: loadingSales } = useSales()
   const createSale = useCreateSale()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { data: settings } = useSettings()
 
   const [items, setItems] = useState<SaleItemLocal[]>([])
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [search, setSearch] = useState('')
   const [descuento, setDescuento] = useState(0)
+  const [clienteFrecuente, setClienteFrecuente] = useState(false)
   const [notas, setNotas] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null)
@@ -381,9 +392,16 @@ export function Sales() {
     (sum, item) => sum + item.cantidad * item.precioUnitario,
     0
   )
-  const total = subtotal - descuento
+
+  const descuentoAutomatico =
+    clienteFrecuente && settings?.descuentoPorcentajeFrecuente
+      ? Math.round(subtotal * (settings.descuentoPorcentajeFrecuente / 100) * 100) / 100
+      : 0
+
+  const descuentoFinal = clienteFrecuente ? descuentoAutomatico : descuento
+  const total = subtotal - descuentoFinal
   const discountError =
-    descuento > subtotal ? 'El descuento no puede ser mayor al total' : null
+    descuentoFinal > subtotal ? 'El descuento no puede ser mayor al total' : null
 
   const [metodoPago, setMetodoPago] = useState<PaymentMethod>('EFECTIVO')
 
@@ -441,12 +459,14 @@ export function Sales() {
           varianteId: i.varianteId,
           cantidad: i.cantidad,
         })),
-        descuento,
+        descuento: descuentoFinal,
+        clienteFrecuente,
         notas: notas.trim() || null,
         metodoPago,
       })
       setItems([])
       setDescuento(0)
+      setClienteFrecuente(false)
       setNotas('')
       setMetodoPago('EFECTIVO')
       setPage(1)
@@ -604,13 +624,36 @@ export function Sales() {
                 type="number"
                 min={0}
                 step="0.01"
-                value={descuento}
+                value={clienteFrecuente ? descuentoAutomatico : descuento}
                 onChange={(e) =>
                   setDescuento(Math.max(0, Number(e.target.value)))
                 }
-                className="w-28 rounded-lg border border-gray-300 px-3 py-1.5 text-right text-sm outline-none focus:ring-2 focus:ring-[#E85D8C]"
+                disabled={clienteFrecuente}
+                className="w-28 rounded-lg border border-gray-300 px-3 py-1.5 text-right text-sm outline-none focus:ring-2 focus:ring-[#E85D8C] disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={clienteFrecuente}
+                onChange={(e) => {
+                  setClienteFrecuente(e.target.checked)
+                  if (!e.target.checked) setDescuento(0)
+                }}
+                className="h-4 w-4 rounded border-gray-300 text-[#E85D8C] focus:ring-[#E85D8C]"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Cliente frecuente
+              </span>
+              {clienteFrecuente && settings?.descuentoPorcentajeFrecuente ? (
+                <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-semibold text-[#E85D8C]">
+                  -{settings.descuentoPorcentajeFrecuente}%
+                </span>
+              ) : null}
+            </label>
           </div>
 
           <div className="mb-4 flex flex-col gap-2 sm:max-w-xs">
@@ -633,9 +676,11 @@ export function Sales() {
             </select>
           </div>
 
-          {descuento > 0 && (
+          {descuentoFinal > 0 && (
             <p className="mb-2 text-right text-sm font-semibold text-red-600">
-              Descuento: -${descuento.toFixed(2)}
+              {clienteFrecuente && settings?.descuentoPorcentajeFrecuente
+                ? `Descuento frecuente (${settings.descuentoPorcentajeFrecuente}%): -${descuentoFinal.toFixed(2)}`
+                : `Descuento: -${descuentoFinal.toFixed(2)}`}
             </p>
           )}
 

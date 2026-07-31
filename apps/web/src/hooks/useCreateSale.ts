@@ -11,6 +11,7 @@ export interface SaleItem {
 export interface CreateSaleData {
   items: SaleItem[]
   descuento?: number
+  clienteFrecuente?: boolean
   metodoPago: PaymentMethod
   notas?: string | null
 }
