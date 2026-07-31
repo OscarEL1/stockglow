@@ -44,3 +44,35 @@ export function useSales() {
     },
   })
 }
+
+export interface EmployeeClosing {
+  usuarioId: string
+  nombre: string
+  transacciones: number
+  total: number
+}
+
+export interface DailyClosingData {
+  fecha: string
+  empleadas: EmployeeClosing[]
+  totalGeneral: number
+  totalTransacciones: number
+  sinVentas: boolean
+}
+
+export function useDailyClosing(fecha?: string) {
+  const { getToken } = useAuth()
+
+  const params = fecha ? `?fecha=${fecha}` : ''
+
+  return useQuery({
+    queryKey: ['dailyClosing', fecha],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        `/api/v1/sales/daily-closing${params}`
+      )
+      return res.data as DailyClosingData
+    },
+  })
+}

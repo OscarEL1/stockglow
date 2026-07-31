@@ -29,6 +29,12 @@ const NAV_ITEMS = [
   { label: 'Proveedores', path: '/suppliers', icon: Truck, adminOnly: false },
   { label: 'Ventas', path: '/sales', icon: ShoppingCart, adminOnly: false },
   {
+    label: 'Cierre del día',
+    path: '/daily-closing',
+    icon: ArrowUpDown,
+    adminOnly: true,
+  },
+  {
     label: 'Reportes',
     path: '/movements',
     icon: ArrowUpDown,
