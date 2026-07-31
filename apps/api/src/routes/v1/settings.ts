@@ -23,6 +23,11 @@ const updateSettingsSchema = z.object({
     .int()
     .min(0, 'El stock mínimo global no puede ser negativo')
     .optional(),
+  descuentoPorcentajeFrecuente: z
+    .number()
+    .min(0, 'El descuento no puede ser negativo')
+    .max(100, 'El descuento no puede ser mayor al 100%')
+    .optional(),
 })
 
 const createCategorySchema = z.object({
@@ -47,6 +52,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           logoUrl: true,
           umbralDiasCaducidad: true,
           stockMinimoGlobal: true,
+          descuentoPorcentajeFrecuente: true,
         },
       })
 
@@ -56,6 +62,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           logoUrl: tenant?.logoUrl ?? null,
           umbralDiasCaducidad: tenant?.umbralDiasCaducidad ?? 30,
           stockMinimoGlobal: tenant?.stockMinimoGlobal ?? 5,
+          descuentoPorcentajeFrecuente: tenant?.descuentoPorcentajeFrecuente ?? 0,
         })
       )
     }
@@ -79,6 +86,9 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           ...(input.stockMinimoGlobal !== undefined && {
             stockMinimoGlobal: input.stockMinimoGlobal,
           }),
+          ...(input.descuentoPorcentajeFrecuente !== undefined && {
+            descuentoPorcentajeFrecuente: input.descuentoPorcentajeFrecuente,
+          }),
         },
       })
 
@@ -88,6 +98,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           logoUrl: tenant.logoUrl,
           umbralDiasCaducidad: tenant.umbralDiasCaducidad,
           stockMinimoGlobal: tenant.stockMinimoGlobal,
+          descuentoPorcentajeFrecuente: tenant.descuentoPorcentajeFrecuente,
         })
       )
     }
