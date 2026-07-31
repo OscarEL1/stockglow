@@ -7,7 +7,35 @@ import { successResponse } from '../../lib/response.js'
 export async function webhookRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/clerk',
-    { config: { rawBody: true } },
+    {
+      config: { rawBody: true },
+      schema: {
+        tags: ['webhooks'],
+        summary: 'Webhook de Clerk',
+        description:
+          'Recibe eventos de Clerk (user.created) para crear tenant y usuario automáticamente. Validado con firma Svix.',
+        security: [],
+        body: {
+          type: 'object',
+          description: 'Payload del evento de Clerk',
+        },
+        response: {
+          200: {
+            description: 'Evento procesado',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  received: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     async (request: any, reply) => {
       const svixId = request.headers['svix-id']
       const svixTimestamp = request.headers['svix-timestamp']

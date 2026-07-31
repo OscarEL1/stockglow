@@ -22,6 +22,45 @@ export async function saleRoutes(fastify: FastifyInstance) {
     '/',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['sales'],
+        summary: 'Listar ventas recientes',
+        description:
+          'Retorna las últimas 50 ventas de la tienda, ordenadas por fecha descendente, con detalles y vendedora.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Lista de ventas',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    total: { type: 'number' },
+                    descuento: { type: 'number', nullable: true },
+                    notas: { type: 'string', nullable: true },
+                    metodoPago: { type: 'string', nullable: true },
+                    estado: { type: 'string' },
+                    createdAt: { type: 'string' },
+                    detalles: { type: 'array' },
+                    usuario: {
+                      type: 'object',
+                      properties: {
+                        nombre: { type: 'string' },
+                        rol: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { tenantId } = request
@@ -56,6 +95,62 @@ export async function saleRoutes(fastify: FastifyInstance) {
     '/',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['sales'],
+        summary: 'Crear venta',
+        description:
+          'Registra una nueva venta. Valida stock, adquiere locks por SKU, descuenta inventario y genera alertas si es necesario. Emite evento WebSocket.',
+        security: [{ bearerAuth: [] }],
+        body: {
+          type: 'object',
+          required: ['items'],
+          properties: {
+            items: {
+              type: 'array',
+              description: 'Items de la venta',
+              items: {
+                type: 'object',
+                required: ['varianteId', 'cantidad'],
+                properties: {
+                  varianteId: { type: 'string', description: 'ID de la variante' },
+                  cantidad: { type: 'number', minimum: 1, description: 'Cantidad a vender' },
+                },
+              },
+            },
+            descuento: {
+              type: 'number',
+              minimum: 0,
+              description: 'Descuento total (opcional)',
+            },
+            notas: {
+              type: 'string',
+              description: 'Notas adicionales de la venta',
+            },
+            metodoPago: {
+              type: 'string',
+              description: 'Método de pago utilizado',
+            },
+          },
+        },
+        response: {
+          201: {
+            description: 'Venta creada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  total: { type: 'number' },
+                  estado: { type: 'string' },
+                  detalles: { type: 'array' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const input = createSaleSchema.parse(request.body)
@@ -242,6 +337,37 @@ export async function saleRoutes(fastify: FastifyInstance) {
     '/:id/cancel',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['sales'],
+        summary: 'Cancelar venta',
+        description:
+          'Cancela una venta completada, restaura el stock de todas las variantes y registra movimientos de entrada.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string', description: 'ID de la venta' },
+          },
+        },
+        response: {
+          200: {
+            description: 'Venta cancelada',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  estado: { type: 'string' },
+                  detalles: { type: 'array' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { id } = request.params as { id: string }
