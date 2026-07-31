@@ -21,11 +21,49 @@ function diasRestantesHasta(fecha: Date): number {
 }
 
 export async function alertRoutes(fastify: FastifyInstance) {
-  // GET /api/v1/alerts
   fastify.get(
     '/',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['alerts'],
+        summary: 'Listar alertas',
+        description:
+          'Retorna alertas de bajo stock y caducidad próxima. Incluye alertas calculadas dinámicamente según el umbral configurado por la tienda.',
+        security: [{ bearerAuth: [] }],
+        querystring: {
+          type: 'object',
+          properties: {
+            includeRead: {
+              type: 'string',
+              enum: ['true', 'false'],
+              description: 'Incluir alertas ya leídas',
+              default: 'false',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Lista de alertas',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    tipo: { type: 'string', enum: ['BAJO_STOCK', 'CADUCIDAD_PROXIMA'] },
+                    leida: { type: 'boolean' },
+                    createdAt: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { tenantId } = request
@@ -152,11 +190,43 @@ export async function alertRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // PATCH /api/v1/alerts/:id/read
   fastify.patch(
     '/:id/read',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['alerts'],
+        summary: 'Marcar alerta como leída',
+        description:
+          'Marca una alerta individual como leída. Soporta alertas de caducidad (auto-caducidad-{id}) y de stock.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'ID de la alerta (puede ser un ID de BD o auto-caducidad-{varianteId})',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Alerta marcada como leída',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  leida: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { id } = request.params as { id: string }
@@ -180,11 +250,32 @@ export async function alertRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // PATCH /api/v1/alerts/mark-read
   fastify.patch(
     '/mark-read',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['alerts'],
+        summary: 'Marcar todas las alertas como leídas',
+        description:
+          'Marca todas las alertas pendientes (stock y caducidad) como leídas en una sola operación.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Alertas marcadas',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  count: { type: 'number', description: 'Número de alertas marcadas' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { tenantId } = request

@@ -10,11 +10,60 @@ import { Errors } from '../../lib/errors.js'
 const SALES_METRICS_PERIODS = ['hoy', 'semana', 'mes'] as const
 
 export async function reportsRoutes(fastify: FastifyInstance) {
-  // GET /api/v1/reports/sales-metrics
   fastify.get(
     '/sales-metrics',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Métricas de ventas por periodo',
+        description:
+          'Retorna métricas de ventas para hoy, esta semana y este mes. Incluye comparación con el mes anterior.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Métricas de ventas',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  hoy: {
+                    type: 'object',
+                    properties: {
+                      numeroVentas: { type: 'number' },
+                      montoTotal: { type: 'number' },
+                      fechaInicio: { type: 'string' },
+                      fechaFin: { type: 'string' },
+                    },
+                  },
+                  semana: {
+                    type: 'object',
+                    properties: {
+                      numeroVentas: { type: 'number' },
+                      montoTotal: { type: 'number' },
+                      fechaInicio: { type: 'string' },
+                      fechaFin: { type: 'string' },
+                    },
+                  },
+                  mes: {
+                    type: 'object',
+                    properties: {
+                      numeroVentas: { type: 'number' },
+                      montoTotal: { type: 'number' },
+                      fechaInicio: { type: 'string' },
+                      fechaFin: { type: 'string' },
+                      montoMesAnterior: { type: 'number' },
+                      porcentajeCambio: { type: 'number' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const tenantId = request.tenantId
@@ -82,11 +131,37 @@ export async function reportsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/reports/sales-by-day
   fastify.get(
     '/sales-by-day',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Ventas por día (últimos 7 días)',
+        description:
+          'Retorna el total de ventas completadas por día durante los últimos 7 días.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Ventas diarias',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    date: { type: 'string', description: 'Fecha YYYY-MM-DD' },
+                    label: { type: 'string', description: 'Fecha legible' },
+                    total: { type: 'number', description: 'Monto total del día' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const tenantId = request.tenantId
@@ -135,11 +210,49 @@ export async function reportsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/reports/top-products
   fastify.get(
     '/top-products',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Productos más vendidos',
+        description:
+          'Retorna los 5 productos con más unidades vendidas en el periodo indicado (semana o mes).',
+        security: [{ bearerAuth: [] }],
+        querystring: {
+          type: 'object',
+          properties: {
+            period: {
+              type: 'string',
+              enum: ['week', 'month'],
+              description: 'Periodo de análisis',
+              default: 'month',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Top productos',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    nombre: { type: 'string' },
+                    imagenUrl: { type: 'string', nullable: true },
+                    cantidadVendida: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const tenantId = request.tenantId
@@ -195,11 +308,41 @@ export async function reportsRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/reports/employees-ranking
   fastify.get(
     '/employees-ranking',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Ranking de empleadas por ventas',
+        description:
+          'Retorna el ranking de empleadas ordenado por número de ventas en el mes actual. Solo accesible para administradores (org:admin).',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Ranking de empleadas',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    usuarioId: { type: 'string' },
+                    nombre: { type: 'string' },
+                    ventas: { type: 'number' },
+                    montoTotal: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+          403: {
+            description: 'No tiene permisos de administrador',
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const { tenantId, orgRole } = request

@@ -3,11 +3,42 @@ import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 
 export async function dashboardRoutes(fastify: FastifyInstance) {
-  // GET /api/v1/dashboard/summary
   fastify.get(
     '/summary',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Resumen del dashboard',
+        description:
+          'Retorna métricas generales: total de productos, variantes, valor de inventario, alertas, ventas del día/mes, y margen promedio de ganancia.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Resumen del dashboard',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  totalProducts: { type: 'number' },
+                  totalVariants: { type: 'number' },
+                  totalValue: { type: 'number' },
+                  totalAlerts: { type: 'number' },
+                  totalVentasHoy: { type: 'number' },
+                  totalVentasMesActual: { type: 'number' },
+                  totalVentasMesAnterior: { type: 'number' },
+                  disponibles: { type: 'number' },
+                  stockBajo: { type: 'number' },
+                  agotados: { type: 'number' },
+                  margenPromedio: { type: 'number', nullable: true },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const totalProducts = await prisma.producto.count({
@@ -138,11 +169,37 @@ export async function dashboardRoutes(fastify: FastifyInstance) {
     }
   )
 
-  // GET /api/v1/dashboard/category-distribution
   fastify.get(
     '/category-distribution',
     {
       preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['dashboard'],
+        summary: 'Distribución por categoría',
+        description:
+          'Retorna el valor total del inventario y número de variantes agrupados por categoría.',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: {
+            description: 'Distribución de categorías',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    categoria: { type: 'string' },
+                    totalValue: { type: 'number' },
+                    totalVariants: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
     async (request: any, reply) => {
       const variants = await prisma.varianteProducto.findMany({
