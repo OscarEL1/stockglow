@@ -3,11 +3,19 @@ import { Layout } from '../components/Layout'
 import {
   useMermasReport,
   useArchivedProductsReport,
+  useDeadStockReport,
   type MermasFilters,
 } from '../hooks/useReports'
-import { AlertTriangle, Package, Search, Trash2 } from 'lucide-react'
+import { exportDeadStockExcel } from '../lib/exportDeadStockExcel'
+import {
+  AlertTriangle,
+  Package,
+  Search,
+  Trash2,
+  Clock,
+} from 'lucide-react'
 
-type Tab = 'mermas' | 'archived'
+type Tab = 'mermas' | 'archived' | 'deadstock'
 
 function MermasTab() {
   const [filters, setFilters] = useState<MermasFilters>({})
@@ -19,7 +27,6 @@ function MermasTab() {
 
   return (
     <div className="space-y-6">
-      {/* Resumen */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
@@ -63,7 +70,6 @@ function MermasTab() {
         </div>
       </div>
 
-      {/* Filtros */}
       <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-end gap-4">
           <div>
@@ -129,7 +135,6 @@ function MermasTab() {
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -212,7 +217,6 @@ function ArchivedProductsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Resumen */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-3">
@@ -242,7 +246,6 @@ function ArchivedProductsTab() {
         </div>
       </div>
 
-      {/* Tabla */}
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -298,46 +301,145 @@ function ArchivedProductsTab() {
   )
 }
 
+function DeadStockTab() {
+  const { data, isLoading } = useDeadStockReport()
+  const items = data?.items ?? []
+  const meta = data?.meta ?? { totalVariantes: 0, stockTotal: 0 }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-50">
+              <Clock size={20} className="text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-xs text-[#7A7480]">Variantes sin movimiento</p>
+              <p className="text-xl font-bold text-[#2D2A32]">
+                {meta.totalVariantes}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-50">
+              <Package size={20} className="text-yellow-500" />
+            </div>
+            <div>
+              <p className="text-xs text-[#7A7480]">Stock inactivo total</p>
+              <p className="text-xl font-bold text-[#2D2A32]">
+                {meta.stockTotal}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
+          </div>
+        ) : items.length === 0 ? (
+          <div className="py-12 text-center">
+            <Clock size={40} className="mx-auto text-gray-300" />
+            <p className="mt-3 text-sm text-[#7A7480]">
+              Todos los productos se han movido en los últimos 30 días.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-[#2D2A32]">
+              <thead className="border-b border-gray-100 text-xs text-[#7A7480]">
+                <tr>
+                  <th className="pb-3">Producto</th>
+                  <th className="pb-3">Variante</th>
+                  <th className="pb-3">SKU</th>
+                  <th className="pb-3 text-right">Stock actual</th>
+                  <th className="pb-3">Último movimiento</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {items.map((item) => (
+                  <tr key={item.varianteId} className="hover:bg-[#FFF8F9]">
+                    <td className="py-3 font-medium">{item.producto}</td>
+                    <td className="py-3">{item.variante}</td>
+                    <td className="py-3 font-mono text-xs text-[#7A7480]">
+                      {item.sku}
+                    </td>
+                    <td className="py-3 text-right">{item.stockActual}</td>
+                    <td className="py-3 text-[#7A7480]">
+                      {item.ultimoMovimiento
+                        ? new Date(item.ultimoMovimiento).toLocaleDateString(
+                            'es-MX'
+                          )
+                        : 'Sin movimiento'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const TAB_CONFIG = [
+  { key: 'mermas' as const, label: 'Mermas y caducados' },
+  { key: 'archived' as const, label: 'Productos dados de baja' },
+  { key: 'deadstock' as const, label: 'Sin movimiento' },
+]
+
 export function Reports() {
   const [tab, setTab] = useState<Tab>('mermas')
+  const { data: deadStockData } = useDeadStockReport()
+  const items = deadStockData?.items ?? []
 
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-[#2D2A32]">Reportes</h1>
-          <p className="text-sm text-[#7A7480]">
-            Consulta las mermas, productos caducados y productos dados de baja.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#2D2A32]">Reportes</h1>
+            <p className="text-sm text-[#7A7480]">
+              Consulta mermas, productos caducados, dados de baja y sin
+              movimiento.
+            </p>
+          </div>
+
+          {tab === 'deadstock' && items.length > 0 && (
+            <button
+              onClick={() => exportDeadStockExcel(items)}
+              className="rounded-lg border border-green-600 bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              Exportar a Excel
+            </button>
+          )}
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 rounded-xl border border-gray-100 bg-white p-1 shadow-sm">
-          <button
-            onClick={() => setTab('mermas')}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-              tab === 'mermas'
-                ? 'bg-[#E85D8C] text-white shadow'
-                : 'text-[#7A7480] hover:bg-[#FFF8F9]'
-            }`}
-          >
-            Mermas y caducados
-          </button>
-          <button
-            onClick={() => setTab('archived')}
-            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-              tab === 'archived'
-                ? 'bg-[#E85D8C] text-white shadow'
-                : 'text-[#7A7480] hover:bg-[#FFF8F9]'
-            }`}
-          >
-            Productos dados de baja
-          </button>
+          {TAB_CONFIG.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                tab === t.key
+                  ? 'bg-[#E85D8C] text-white shadow'
+                  : 'text-[#7A7480] hover:bg-[#FFF8F9]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {/* Content */}
-        {tab === 'mermas' ? <MermasTab /> : <ArchivedProductsTab />}
+        {tab === 'mermas' && <MermasTab />}
+        {tab === 'archived' && <ArchivedProductsTab />}
+        {tab === 'deadstock' && <DeadStockTab />}
       </div>
     </Layout>
   )

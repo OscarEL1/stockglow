@@ -432,4 +432,92 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       )
     }
   )
+
+  // GET /api/v1/reports/dead-stock
+  fastify.get(
+    '/dead-stock',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+      // Todas las variantes activas del tenant
+      const allVariants = await prisma.varianteProducto.findMany({
+        where: { tenantId, activo: true },
+        include: {
+          producto: { select: { nombre: true } },
+          detalles: {
+            where: {
+              venta: {
+                estado: 'COMPLETADA',
+                createdAt: { gte: thirtyDaysAgo },
+              },
+            },
+            select: { id: true },
+          },
+          movimientos: {
+            where: { createdAt: { gte: thirtyDaysAgo } },
+            select: { id: true },
+          },
+        },
+      })
+
+      // Filtrar variantes sin actividad reciente
+      const deadStock = allVariants.filter(
+        (v) => v.detalles.length === 0 && v.movimientos.length === 0
+      )
+
+      // CA02: Para cada variante sin movimiento, obtener la fecha del último movimiento
+      const variantIds = deadStock.map((v) => v.id)
+
+      const lastMovements = await prisma.movimientoStock.groupBy({
+        by: ['varianteId'],
+        where: { varianteId: { in: variantIds } },
+        _max: { createdAt: true },
+      })
+
+      const lastSales = await prisma.detalleVenta.findMany({
+        where: { varianteId: { in: variantIds } },
+        select: {
+          varianteId: true,
+          venta: { select: { createdAt: true } },
+        },
+        orderBy: { venta: { createdAt: 'desc' } },
+      })
+
+      // Mapa varianteId → fecha último movimiento
+      const lastMovementMap = new Map<string, Date | null>()
+
+      for (const m of lastMovements) {
+        lastMovementMap.set(m.varianteId, m._max.createdAt)
+      }
+
+      for (const d of lastSales) {
+        if (!lastMovementMap.has(d.varianteId)) {
+          lastMovementMap.set(d.varianteId, d.venta.createdAt)
+        }
+      }
+
+      const data = deadStock.map((v) => ({
+        varianteId: v.id,
+        producto: v.producto.nombre,
+        variante: v.nombreVariante,
+        sku: v.sku,
+        stockActual: v.stockActual,
+        ultimoMovimiento: lastMovementMap.get(v.id) ?? null,
+      }))
+
+      // Resumen
+      const resumen = {
+        totalVariantes: data.length,
+        stockTotal: data.reduce((sum, v) => sum + v.stockActual, 0),
+      }
+
+      return reply.send(successResponse(data, resumen))
+    }
+  )
 }

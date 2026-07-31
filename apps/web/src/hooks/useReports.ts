@@ -22,6 +22,52 @@ export interface EmployeeRankingItem {
   montoTotal: number
 }
 
+export function useSalesByDay() {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['salesByDay'],
+    queryFn: async () => {
+      const res = await fetchWithAuth(getToken, '/api/v1/reports/sales-by-day')
+
+      return res.data as SalesByDayItem[]
+    },
+  })
+}
+
+export function useTopProducts(period: 'week' | 'month' = 'month') {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['topProducts', period],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        `/api/v1/reports/top-products?period=${period}`
+      )
+
+      return res.data as TopProductItem[]
+    },
+  })
+}
+
+export function useEmployeesRanking(enabled = true) {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['employeesRanking'],
+    enabled,
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        '/api/v1/reports/employees-ranking'
+      )
+
+      return res.data as EmployeeRankingItem[]
+    },
+  })
+}
+
 export interface MermasFilters {
   fechaInicio?: string
   fechaFin?: string
@@ -81,52 +127,6 @@ export interface ArchivedProductsReport {
   resumen: { totalProductos: number; totalVariantes: number }
 }
 
-export function useSalesByDay() {
-  const { getToken } = useAuth()
-
-  return useQuery({
-    queryKey: ['salesByDay'],
-    queryFn: async () => {
-      const res = await fetchWithAuth(getToken, '/api/v1/reports/sales-by-day')
-
-      return res.data as SalesByDayItem[]
-    },
-  })
-}
-
-export function useTopProducts(period: 'week' | 'month' = 'month') {
-  const { getToken } = useAuth()
-
-  return useQuery({
-    queryKey: ['topProducts', period],
-    queryFn: async () => {
-      const res = await fetchWithAuth(
-        getToken,
-        `/api/v1/reports/top-products?period=${period}`
-      )
-
-      return res.data as TopProductItem[]
-    },
-  })
-}
-
-export function useEmployeesRanking(enabled = true) {
-  const { getToken } = useAuth()
-
-  return useQuery({
-    queryKey: ['employeesRanking'],
-    enabled,
-    queryFn: async () => {
-      const res = await fetchWithAuth(
-        getToken,
-        '/api/v1/reports/employees-ranking'
-      )
-
-      return res.data as EmployeeRankingItem[]
-    },
-  })
-}
-
 export function useMermasReport(filters: MermasFilters = {}) {
   const { getToken } = useAuth()
 
@@ -160,6 +160,47 @@ export function useArchivedProductsReport() {
         '/api/v1/reports/archived-products'
       )
       return res.data as ArchivedProductsReport
+    },
+  })
+}
+
+export interface DeadStockItem {
+  varianteId: string
+  producto: string
+  variante: string
+  sku: string
+  stockActual: number
+  ultimoMovimiento: string | null
+}
+
+export interface DeadStockMeta {
+  totalVariantes: number
+  stockTotal: number
+}
+
+export interface DeadStockResponse {
+  items: DeadStockItem[]
+  meta: DeadStockMeta
+}
+
+export function useDeadStockReport() {
+  const { getToken } = useAuth()
+
+  return useQuery({
+    queryKey: ['deadStockReport'],
+    queryFn: async () => {
+      const res = await fetchWithAuth(
+        getToken,
+        '/api/v1/reports/dead-stock'
+      )
+
+      return {
+        items: res.data as DeadStockItem[],
+        meta: (res.meta as DeadStockMeta) ?? {
+          totalVariantes: 0,
+          stockTotal: 0,
+        },
+      }
     },
   })
 }
