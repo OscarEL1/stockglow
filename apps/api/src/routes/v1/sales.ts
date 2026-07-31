@@ -225,7 +225,18 @@ export async function saleRoutes(fastify: FastifyInstance) {
           })
         }
 
-        const descuento = input.descuento ?? 0
+        const descuentoManual = input.descuento ?? 0
+        let descuento = descuentoManual
+
+        if (input.clienteFrecuente) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { descuentoPorcentajeFrecuente: true },
+          })
+          const porcentaje = tenant?.descuentoPorcentajeFrecuente ?? 0
+          descuento = Math.round(subtotal * (porcentaje / 100) * 100) / 100
+        }
+
         if (descuento > subtotal) throw Errors.DISCOUNT_EXCEEDS_SUBTOTAL()
 
         const total = subtotal - descuento
@@ -241,6 +252,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 descuento,
                 notas: input.notas,
                 metodoPago: input.metodoPago,
+                clienteFrecuente: input.clienteFrecuente ?? false,
                 estado: 'COMPLETADA',
                 detalles: {
                   create: detalles.map((d) => ({
@@ -432,6 +444,119 @@ export async function saleRoutes(fastify: FastifyInstance) {
       )
 
       return reply.send(successResponse(ventaActualizada))
+    }
+  )
+
+  // GET /api/v1/sales/daily-closing — CA01: desglose de ventas por empleada
+  fastify.get(
+    '/daily-closing',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const { tenantId, orgRole } = request
+
+      if (orgRole !== 'org:admin') {
+        throw Errors.FORBIDDEN()
+      }
+
+      const { fecha } = request.query as { fecha?: string }
+
+      const now = new Date()
+      const target = fecha
+        ? (() => {
+            const [y, m, d] = fecha.split('-').map(Number)
+            return new Date(y, m - 1, d)
+          })()
+        : now
+      const startOfDay = new Date(
+        target.getFullYear(),
+        target.getMonth(),
+        target.getDate(),
+        0,
+        0,
+        0,
+        0
+      )
+      const endOfDay = new Date(
+        target.getFullYear(),
+        target.getMonth(),
+        target.getDate(),
+        23,
+        59,
+        59,
+        999
+      )
+
+      const ventas = await prisma.venta.findMany({
+        where: {
+          tenantId,
+          estado: 'COMPLETADA',
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        include: {
+          usuario: {
+            select: { id: true, nombre: true },
+          },
+        },
+      })
+
+      // CA02: Sin ventas registradas
+      if (ventas.length === 0) {
+        return reply.send(
+          successResponse({
+            fecha: startOfDay.toISOString().split('T')[0],
+            empleadas: [],
+            totalGeneral: 0,
+            totalTransacciones: 0,
+            sinVentas: true,
+          })
+        )
+      }
+
+      // Agrupar por empleada
+      const employeeMap = new Map<
+        string,
+        { usuarioId: string; nombre: string; transacciones: number; total: number }
+      >()
+
+      for (const venta of ventas) {
+        const key = venta.usuarioId
+        if (!employeeMap.has(key)) {
+          employeeMap.set(key, {
+            usuarioId: key,
+            nombre: venta.usuario.nombre,
+            transacciones: 0,
+            total: 0,
+          })
+        }
+        const entry = employeeMap.get(key)!
+        entry.transacciones += 1
+        entry.total += Number(venta.total)
+      }
+
+      const empleadas = Array.from(employeeMap.values()).sort(
+        (a, b) => b.total - a.total
+      )
+
+      const totalGeneral = empleadas.reduce((sum, e) => sum + e.total, 0)
+      const totalTransacciones = empleadas.reduce(
+        (sum, e) => sum + e.transacciones,
+        0
+      )
+
+      return reply.send(
+        successResponse({
+          fecha: startOfDay.toISOString().split('T')[0],
+          empleadas,
+          totalGeneral,
+          totalTransacciones,
+          sinVentas: false,
+        })
+      )
     }
   )
 }

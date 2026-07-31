@@ -1,4 +1,4 @@
-﻿CREATE TYPE "MetodoPago"
+CREATE TYPE "MetodoPago"
 AS ENUM ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA');
 
 ALTER TABLE "ventas"

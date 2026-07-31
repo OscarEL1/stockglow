@@ -15,6 +15,7 @@ export const saleItemSchema = z.object({
 export const createSaleSchema = z.object({
   items: z.array(saleItemSchema).min(1),
   descuento: z.number().nonnegative().optional(),
+  clienteFrecuente: z.boolean().optional(),
   metodoPago: paymentMethodSchema,
   notas: z
     .string()

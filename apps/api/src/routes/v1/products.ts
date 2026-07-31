@@ -113,12 +113,12 @@ export async function productRoutes(fastify: FastifyInstance) {
         tenantId: request.tenantId,
         activo,
       }
-
       const [products, total] = await Promise.all([
         prisma.producto.findMany({
           where,
           include: {
             variantes: true,
+            proveedor: true,
           },
           skip,
           take,
@@ -126,10 +126,7 @@ export async function productRoutes(fastify: FastifyInstance) {
             createdAt: 'desc',
           },
         }),
-
-        prisma.producto.count({
-          where,
-        }),
+        prisma.producto.count({ where }),
       ])
 
       return reply.send(
@@ -220,7 +217,7 @@ export async function productRoutes(fastify: FastifyInstance) {
           id: request.params.id,
           tenantId: request.tenantId,
         },
-        include: { variantes: true },
+        include: { variantes: true, proveedor: true },
       })
 
       if (!product) throw Errors.PRODUCT_NOT_FOUND()

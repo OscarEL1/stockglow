@@ -12,6 +12,7 @@ import { useStockWebSocket } from '../hooks/useStockWebSocket'
 import { useToast } from '../hooks/useToast'
 import { useProducts } from '../hooks/useProducts'
 import { exportInventoryExcel } from '../lib/exportInventoryExcel'
+import { AddMultipleVariantsModal } from '../components/AddMultipleVariantsModal'
 
 export function Inventory() {
   const { organization } = useOrganization()
@@ -20,6 +21,8 @@ export function Inventory() {
   const { toast, showToast, hideToast } = useToast()
   const [showProductModal, setShowProductModal] = useState(false)
   const [showVariantModal, setShowVariantModal] = useState(false)
+  const [showMultipleVariantsModal, setShowMultipleVariantsModal] =
+    useState(false)
   const [searchParams] = useSearchParams()
   const statusFilter = searchParams.get('status')
 
@@ -69,6 +72,14 @@ export function Inventory() {
             >
               + Agregar variante
             </button>
+
+            <button
+              type="button"
+              onClick={() => setShowMultipleVariantsModal(true)}
+              className="rounded-lg border border-[#E85D8C] px-4 py-2 text-sm font-medium text-[#E85D8C] transition hover:bg-[#FFF1F5]"
+            >
+              + Variantes múltiples
+            </button>
           </div>
         )}
       </div>
@@ -91,6 +102,14 @@ export function Inventory() {
           onClose={() => setShowVariantModal(false)}
           onSuccess={(msg) => showToast(msg, 'success')}
           onError={(msg) => showToast(msg, 'error')}
+        />
+      )}
+
+      {showMultipleVariantsModal && (
+        <AddMultipleVariantsModal
+          onClose={() => setShowMultipleVariantsModal(false)}
+          onSuccess={(message) => showToast(message, 'success')}
+          onError={(message) => showToast(message, 'error')}
         />
       )}
 

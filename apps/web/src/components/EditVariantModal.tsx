@@ -314,7 +314,9 @@ export function EditVariantModal({
                 className="mb-2 block text-xs font-bold text-[#6F6875]"
               >
                 Costo unitario
-                <span className="ml-1 font-normal text-[#9F9AA5]">(opcional)</span>
+                <span className="ml-1 font-normal text-[#9F9AA5]">
+                  (opcional)
+                </span>
               </label>
 
               <input

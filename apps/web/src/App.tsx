@@ -7,12 +7,14 @@ import { Users } from './pages/Users'
 import Alerts from './pages/Alerts'
 import { AccessDenied } from './pages/AccessDenied'
 import Onboarding from './pages/Onboarding'
-import { Layout } from './components/Layout'
 import { ProtectedByRole } from './components/ProtectedByRole'
 import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
 import { GlobalToast } from './components/GlobalToast'
+import { Suppliers } from './pages/Suppliers'
+import { DailyClosing } from './pages/DailyClosing'
+import { Reports } from './pages/Reports'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -48,17 +50,6 @@ function RootRedirect() {
       to={organization !== null ? '/dashboard' : '/onboarding'}
       replace
     />
-  )
-}
-
-function ComingSoon({ title }: { title: string }) {
-  return (
-    <Layout>
-      <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-        <h1 className="text-2xl font-bold text-[#2D2A32]">{title}</h1>
-        <p className="mt-2 text-[#7A7480]">Próximamente</p>
-      </div>
-    </Layout>
   )
 }
 
@@ -118,6 +109,17 @@ export default function App() {
         />
 
         <Route
+          path="/daily-closing"
+          element={
+            <ProtectedRoute>
+              <ProtectedByRole role="admin">
+                <DailyClosing />
+              </ProtectedByRole>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/inventory"
           element={
             <ProtectedRoute>
@@ -134,12 +136,20 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/suppliers"
+          element={
+            <ProtectedRoute>
+              <Suppliers />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/movements"
           element={
             <ProtectedRoute>
-              <ComingSoon title="Movimientos" />
+              <Reports />
             </ProtectedRoute>
           }
         />
