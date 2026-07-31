@@ -130,7 +130,18 @@ export async function saleRoutes(fastify: FastifyInstance) {
           })
         }
 
-        const descuento = input.descuento ?? 0
+        const descuentoManual = input.descuento ?? 0
+        let descuento = descuentoManual
+
+        if (input.clienteFrecuente) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: tenantId },
+            select: { descuentoPorcentajeFrecuente: true },
+          })
+          const porcentaje = tenant?.descuentoPorcentajeFrecuente ?? 0
+          descuento = Math.round(subtotal * (porcentaje / 100) * 100) / 100
+        }
+
         if (descuento > subtotal) throw Errors.DISCOUNT_EXCEEDS_SUBTOTAL()
 
         const total = subtotal - descuento
@@ -146,6 +157,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                 descuento,
                 notas: input.notas,
                 metodoPago: input.metodoPago,
+                clienteFrecuente: input.clienteFrecuente ?? false,
                 estado: 'COMPLETADA',
                 detalles: {
                   create: detalles.map((d) => ({

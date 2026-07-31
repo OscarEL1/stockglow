@@ -290,4 +290,234 @@ export async function reportsRoutes(fastify: FastifyInstance) {
       return reply.send(successResponse(result))
     }
   )
+
+  // GET /api/v1/reports/mermas
+  fastify.get(
+    '/mermas',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Reporte de mermas y productos caducados',
+        description:
+          'Devuelve todos los movimientos de tipo MERMA y CADUCADO del tenant, con filtros opcionales de fecha y tipo',
+        querystring: {
+          type: 'object',
+          properties: {
+            fechaInicio: { type: 'string', format: 'date' },
+            fechaFin: { type: 'string', format: 'date' },
+            tipo: { type: 'string', enum: ['MERMA', 'CADUCADO'] },
+          },
+        },
+      },
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+      const { fechaInicio, fechaFin, tipo } = request.query as {
+        fechaInicio?: string
+        fechaFin?: string
+        tipo?: 'MERMA' | 'CADUCADO'
+      }
+
+      const where: any = {
+        tenantId,
+        tipo: tipo ? tipo : { in: ['MERMA', 'CADUCADO'] },
+      }
+
+      if (fechaInicio || fechaFin) {
+        where.createdAt = {}
+        if (fechaInicio) where.createdAt.gte = new Date(fechaInicio)
+        if (fechaFin) {
+          const end = new Date(fechaFin)
+          end.setHours(23, 59, 59, 999)
+          where.createdAt.lte = end
+        }
+      }
+
+      const movimientos = await prisma.movimientoStock.findMany({
+        where,
+        include: {
+          variante: {
+            select: {
+              id: true,
+              sku: true,
+              nombreVariante: true,
+              imagenUrl: true,
+              precioVenta: true,
+              producto: {
+                select: { id: true, nombre: true, marca: true },
+              },
+            },
+          },
+          usuario: {
+            select: { id: true, nombre: true, email: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const resumen = movimientos.reduce(
+        (acc, m) => {
+          const key = m.tipo
+          if (!acc[key]) {
+            acc[key] = { tipo: key, cantidadTotal: 0, registros: 0 }
+          }
+          acc[key].cantidadTotal += Math.abs(m.cantidad)
+          acc[key].registros += 1
+          return acc
+        },
+        {} as Record<
+          string,
+          { tipo: string; cantidadTotal: number; registros: number }
+        >
+      )
+
+      return reply.send(
+        successResponse({
+          movimientos,
+          resumen: Object.values(resumen),
+        })
+      )
+    }
+  )
+
+  // GET /api/v1/reports/archived-products
+  fastify.get(
+    '/archived-products',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['reports'],
+        summary: 'Reporte de productos dados de baja',
+        description:
+          'Devuelve todos los productos archivados/desactivados del tenant con información de variantes y último movimiento',
+      },
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+
+      const productos = await prisma.producto.findMany({
+        where: { tenantId, activo: false },
+        include: {
+          variantes: {
+            select: {
+              id: true,
+              sku: true,
+              nombreVariante: true,
+              stockActual: true,
+              precioVenta: true,
+              activo: true,
+            },
+          },
+          proveedor: {
+            select: { id: true, nombre: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      const totalVariantes = productos.reduce(
+        (sum, p) => sum + p.variantes.length,
+        0
+      )
+
+      return reply.send(
+        successResponse({
+          productos,
+          resumen: {
+            totalProductos: productos.length,
+            totalVariantes,
+          },
+        })
+      )
+    }
+  )
+
+  // GET /api/v1/reports/dead-stock
+  fastify.get(
+    '/dead-stock',
+    {
+      preHandler: [fastify.authenticate],
+    },
+    async (request: any, reply) => {
+      const tenantId = request.tenantId
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      thirtyDaysAgo.setHours(0, 0, 0, 0)
+
+      // Todas las variantes activas del tenant
+      const allVariants = await prisma.varianteProducto.findMany({
+        where: { tenantId, activo: true },
+        include: {
+          producto: { select: { nombre: true } },
+          detalles: {
+            where: {
+              venta: {
+                estado: 'COMPLETADA',
+                createdAt: { gte: thirtyDaysAgo },
+              },
+            },
+            select: { id: true },
+          },
+          movimientos: {
+            where: { createdAt: { gte: thirtyDaysAgo } },
+            select: { id: true },
+          },
+        },
+      })
+
+      // Filtrar variantes sin actividad reciente
+      const deadStock = allVariants.filter(
+        (v) => v.detalles.length === 0 && v.movimientos.length === 0
+      )
+
+      // CA02: Para cada variante sin movimiento, obtener la fecha del último movimiento
+      const variantIds = deadStock.map((v) => v.id)
+
+      const lastMovements = await prisma.movimientoStock.groupBy({
+        by: ['varianteId'],
+        where: { varianteId: { in: variantIds } },
+        _max: { createdAt: true },
+      })
+
+      const lastSales = await prisma.detalleVenta.findMany({
+        where: { varianteId: { in: variantIds } },
+        select: {
+          varianteId: true,
+          venta: { select: { createdAt: true } },
+        },
+        orderBy: { venta: { createdAt: 'desc' } },
+      })
+
+      // Mapa varianteId → fecha último movimiento
+      const lastMovementMap = new Map<string, Date | null>()
+
+      for (const m of lastMovements) {
+        lastMovementMap.set(m.varianteId, m._max.createdAt)
+      }
+
+      for (const d of lastSales) {
+        if (!lastMovementMap.has(d.varianteId)) {
+          lastMovementMap.set(d.varianteId, d.venta.createdAt)
+        }
+      }
+
+      const data = deadStock.map((v) => ({
+        varianteId: v.id,
+        producto: v.producto.nombre,
+        variante: v.nombreVariante,
+        sku: v.sku,
+        stockActual: v.stockActual,
+        ultimoMovimiento: lastMovementMap.get(v.id) ?? null,
+      }))
+
+      // Resumen
+      const resumen = {
+        totalVariantes: data.length,
+        stockTotal: data.reduce((sum, v) => sum + v.stockActual, 0),
+      }
+
+      return reply.send(successResponse(data, resumen))
+    }
+  )
 }

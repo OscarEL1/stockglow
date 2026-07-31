@@ -35,7 +35,7 @@ const NAV_ITEMS = [
     adminOnly: true,
   },
   {
-    label: 'Movimientos',
+    label: 'Reportes',
     path: '/movements',
     icon: ArrowUpDown,
     adminOnly: false,

@@ -17,6 +17,7 @@ model Tenant {
   wizardStep          Int      @default(1)
   stockMinimoGlobal   Int      @default(5) @map("stock_minimo_global")
   umbralDiasCaducidad Int      @default(30) @map("umbral_dias_caducidad")
+  descuentoPorcentajeFrecuente Int @default(0) @map("descuento_porcentaje_frecuente")
 
   usuarios   Usuario[]
   productos  Producto[]
@@ -123,6 +124,7 @@ model Venta {
   descuento   Decimal?    @default(0) @map("descuento") @db.Decimal(10, 2)
   notas       String?     @db.Text
   metodoPago  MetodoPago  @default(EFECTIVO) @map("metodo_pago")
+  clienteFrecuente Boolean @default(false) @map("cliente_frecuente")
   estado      EstadoVenta @default(PENDIENTE)
   createdAt   DateTime    @default(now()) @map("created_at")
 
