@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { label: 'Proveedores', path: '/suppliers', icon: Truck, adminOnly: false },
   { label: 'Ventas', path: '/sales', icon: ShoppingCart, adminOnly: false },
   {
-    label: 'Movimientos',
+    label: 'Reportes',
     path: '/movements',
     icon: ArrowUpDown,
     adminOnly: false,
