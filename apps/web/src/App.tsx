@@ -12,6 +12,7 @@ import { Products } from './pages/Products'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
 import { GlobalToast } from './components/GlobalToast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Suppliers } from './pages/Suppliers'
 import { DailyClosing } from './pages/DailyClosing'
 import { Reports } from './pages/Reports'
@@ -57,6 +58,7 @@ export default function App() {
   return (
     <>
       <GlobalToast />
+      <ErrorBoundary>
       <Routes>
         <Route
           path="/login/*"
@@ -210,6 +212,7 @@ export default function App() {
           }
         />
       </Routes>
+      </ErrorBoundary>
     </>
   )
 }

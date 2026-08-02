@@ -1,42 +1,13 @@
-import { useEffect, useState } from 'react'
-import { useAuth } from '@clerk/clerk-react'
 import { Layout } from '../components/Layout'
+import { useAlerts, type Alert } from '../hooks/useAlerts'
 import { Check, CheckCheck, Calendar, Truck, Phone, Mail } from 'lucide-react'
-
-export interface Alerta {
-  id: string
-  tipo: 'BAJO_STOCK' | 'CADUCIDAD_PROXIMA'
-  leida: boolean
-  createdAt: string
-  fechaCaducidad?: string
-  diasRestantes?: number
-  sugerirPromocion?: boolean
-  variante: {
-    id: string
-    sku: string
-    nombreVariante: string
-    stockActual: number
-    stockMinimo: number
-    producto: {
-      nombre: string
-      marca: string | null
-      proveedor?: {
-        nombre: string
-        telefono?: string | null
-        correo?: string | null
-      } | null
-    }
-  }
-}
-
-const API_URL = `${import.meta.env.VITE_API_URL}/api/v1/alerts`
 
 function AlertsTable({
   alerts,
   onMarkAsRead,
   showAction,
 }: {
-  alerts: Alerta[]
+  alerts: Alert[]
   onMarkAsRead: (id: string) => void
   showAction: boolean
 }) {
@@ -82,10 +53,10 @@ function AlertsTable({
                           {variante.producto.proveedor.telefono}
                         </p>
                       )}
-                      {variante.producto.proveedor.correo && (
+                      {variante.producto.proveedor.email && (
                         <p className="flex items-center gap-1 text-gray-500 mt-0.5">
                           <Mail size={10} />{' '}
-                          {variante.producto.proveedor.correo}
+                          {variante.producto.proveedor.email}
                         </p>
                       )}
                     </div>
@@ -115,7 +86,6 @@ function AlertsTable({
                           </span>
                         </div>
 
-                        {/*  CA01: Sugerencia de promoción si tiene sobrestock y vence pronto */}
                         {alert.sugerirPromocion && (
                           <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200 animate-pulse">
                             📢 Considera hacer una promoción
@@ -179,67 +149,7 @@ function AlertsTable({
 }
 
 export default function Alerts() {
-  const [alerts, setAlerts] = useState<Alerta[]>([])
-  const [loading, setLoading] = useState(true)
-  const [markingAll, setMarkingAll] = useState(false)
-  const { getToken } = useAuth()
-
-  useEffect(() => {
-    async function fetchAlerts() {
-      try {
-        const token = await getToken()
-        const response = await fetch(`${API_URL}?includeRead=true`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const resData = await response.json()
-        if (resData.success) {
-          setAlerts(resData.data)
-        }
-      } catch (error) {
-        console.error('Error cargando alertas:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchAlerts()
-  }, [getToken])
-
-  const handleMarkAsRead = async (id: string) => {
-    try {
-      const token = await getToken()
-      const response = await fetch(`${API_URL}/${id}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const resData = await response.json()
-      if (resData.success) {
-        setAlerts((prev) =>
-          prev.map((a) => (a.id === id ? { ...a, leida: true } : a))
-        )
-      }
-    } catch (error) {
-      console.error('Error al marcar la alerta como leída:', error)
-    }
-  }
-
-  const handleMarkAllAsRead = async () => {
-    setMarkingAll(true)
-    try {
-      const token = await getToken()
-      const response = await fetch(`${API_URL}/mark-read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const resData = await response.json()
-      if (resData.success) {
-        setAlerts((prev) => prev.map((a) => ({ ...a, leida: true })))
-      }
-    } catch (error) {
-      console.error('Error al marcar todas las alertas como leídas:', error)
-    } finally {
-      setMarkingAll(false)
-    }
-  }
+  const { data: alerts = [], isLoading, markAsRead, markAllAsRead } = useAlerts(true)
 
   const pending = alerts.filter((a) => !a.leida)
   const history = alerts.filter((a) => a.leida)
@@ -271,17 +181,17 @@ export default function Alerts() {
 
             {pending.length > 0 && (
               <button
-                onClick={handleMarkAllAsRead}
-                disabled={markingAll}
+                onClick={() => markAllAsRead.mutate()}
+                disabled={markAllAsRead.isPending}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-gray-100 bg-white px-3 py-1.5 text-xs font-semibold text-[#7A7480] transition-colors hover:border-[#E85D8C] hover:bg-[#FFF8F9] hover:text-[#E85D8C] disabled:opacity-50"
               >
                 <CheckCheck size={14} />
-                {markingAll ? 'Marcando...' : 'Marcar todas como leídas'}
+                {markAllAsRead.isPending ? 'Marcando...' : 'Marcar todas como leídas'}
               </button>
             )}
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-[#E85D8C]" />
             </div>
@@ -292,14 +202,14 @@ export default function Alerts() {
           ) : (
             <AlertsTable
               alerts={pending}
-              onMarkAsRead={handleMarkAsRead}
+              onMarkAsRead={(id) => markAsRead.mutate(id)}
               showAction
             />
           )}
         </div>
 
         {/* Historial — solo si hay alertas leídas */}
-        {!loading && history.length > 0 && (
+        {!isLoading && history.length > 0 && (
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-[#7A7480]">
               Historial
@@ -309,7 +219,7 @@ export default function Alerts() {
             </h2>
             <AlertsTable
               alerts={history}
-              onMarkAsRead={handleMarkAsRead}
+              onMarkAsRead={(id) => markAsRead.mutate(id)}
               showAction={false}
             />
           </div>

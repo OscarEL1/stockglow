@@ -83,10 +83,7 @@ export async function alertRoutes(fastify: FastifyInstance) {
 
       // Alertas persistidas (hoy: BAJO_STOCK, generadas al confirmar una venta)
       const alertasStock = await prisma.alerta.findMany({
-        where: {
-          tenantId,
-          leida: false,
-        },
+        where: whereClause,
         include: {
           variante: {
             select: {
@@ -191,66 +188,6 @@ export async function alertRoutes(fastify: FastifyInstance) {
   )
 
   fastify.patch(
-    '/:id/read',
-    {
-      preHandler: [fastify.authenticate],
-      schema: {
-        tags: ['alerts'],
-        summary: 'Marcar alerta como leída',
-        description:
-          'Marca una alerta individual como leída. Soporta alertas de caducidad (auto-caducidad-{id}) y de stock.',
-        security: [{ bearerAuth: [] }],
-        params: {
-          type: 'object',
-          required: ['id'],
-          properties: {
-            id: {
-              type: 'string',
-              description: 'ID de la alerta (puede ser un ID de BD o auto-caducidad-{varianteId})',
-            },
-          },
-        },
-        response: {
-          200: {
-            description: 'Alerta marcada como leída',
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              data: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  leida: { type: 'boolean' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    async (request: any, reply) => {
-      const { id } = request.params as { id: string }
-
-      // Las alertas de caducidad son calculadas, no existen como fila en la
-      // tabla `alertas`: persistimos su lectura en VarianteProducto.alertaLeida.
-      if (id.startsWith('auto-caducidad-')) {
-        const varianteId = id.slice('auto-caducidad-'.length)
-        await prisma.varianteProducto.updateMany({
-          where: { id: varianteId, tenantId: request.tenantId },
-          data: { alertaLeida: true },
-        })
-        return reply.send(successResponse({ id, leida: true }))
-      }
-
-      await prisma.alerta.update({
-        where: { id, tenantId: request.tenantId },
-        data: { leida: true },
-      })
-      return reply.send(successResponse({ id, leida: true }))
-    }
-  )
-
-  fastify.patch(
     '/mark-read',
     {
       preHandler: [fastify.authenticate],
@@ -315,6 +252,66 @@ export async function alertRoutes(fastify: FastifyInstance) {
       ])
 
       return reply.send(successResponse({ count: result.count }))
+    }
+  )
+
+  fastify.patch(
+    '/:id/read',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        tags: ['alerts'],
+        summary: 'Marcar alerta como leída',
+        description:
+          'Marca una alerta individual como leída. Soporta alertas de caducidad (auto-caducidad-{id}) y de stock.',
+        security: [{ bearerAuth: [] }],
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'ID de la alerta (puede ser un ID de BD o auto-caducidad-{varianteId})',
+            },
+          },
+        },
+        response: {
+          200: {
+            description: 'Alerta marcada como leída',
+            type: 'object',
+            properties: {
+              success: { type: 'boolean' },
+              data: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  leida: { type: 'boolean' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request: any, reply) => {
+      const { id } = request.params as { id: string }
+
+      // Las alertas de caducidad son calculadas, no existen como fila en la
+      // tabla `alertas`: persistimos su lectura en VarianteProducto.alertaLeida.
+      if (id.startsWith('auto-caducidad-')) {
+        const varianteId = id.slice('auto-caducidad-'.length)
+        await prisma.varianteProducto.updateMany({
+          where: { id: varianteId, tenantId: request.tenantId },
+          data: { alertaLeida: true },
+        })
+        return reply.send(successResponse({ id, leida: true }))
+      }
+
+      await prisma.alerta.update({
+        where: { id, tenantId: request.tenantId },
+        data: { leida: true },
+      })
+      return reply.send(successResponse({ id, leida: true }))
     }
   )
 }
