@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
-import { clerkPlugin, getAuth } from '@clerk/fastify'
+import { clerkPlugin, getAuth, clerkClient } from '@clerk/fastify'
 import { env } from '../lib/env'
+import { prisma } from '../lib/prisma.js'
 
 export const clerkAuth = fp(async (fastify) => {
   fastify.register(clerkPlugin, {
@@ -27,5 +28,43 @@ export const clerkAuth = fp(async (fastify) => {
     request.tenantId = orgId
     request.userId = userId
     request.orgRole = orgRole ?? null
+
+    // Auto-create tenant if it doesn't exist
+    await prisma.tenant.upsert({
+      where: { id: orgId },
+      create: {
+        id: orgId,
+        nombreTienda: 'Tenant',
+      },
+      update: {},
+    })
+
+    // Auto-create usuario if it doesn't exist
+    const existingUser = await prisma.usuario.findFirst({
+      where: {
+        tenantId: orgId,
+        clerkUserId: userId,
+      },
+    })
+
+    if (!existingUser) {
+      const clerkUser = await clerkClient.users.getUser(userId)
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress ?? `${userId}@placeholder.com`
+      const nombre = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || 'Usuario'
+
+      await prisma.usuario.upsert({
+        where: { clerkUserId: userId },
+        create: {
+          tenantId: orgId,
+          clerkUserId: userId,
+          nombre,
+          email,
+          rol: orgRole === 'org:admin' ? 'OWNER' : 'EMPLOYEE',
+        },
+        update: {
+          nombre,
+        },
+      })
+    }
   })
 })
