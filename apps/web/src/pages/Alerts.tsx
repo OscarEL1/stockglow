@@ -26,7 +26,7 @@ function AlertsTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50 font-medium">
-          {alerts.map((alert) => {
+          {alerts.filter((a) => a.variante).map((alert) => {
             const { variante, tipo, fechaCaducidad, diasRestantes } = alert
             const { stockActual, stockMinimo } = variante
             const esCaducado =

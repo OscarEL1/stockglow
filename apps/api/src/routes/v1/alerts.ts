@@ -87,6 +87,7 @@ export async function alertRoutes(fastify: FastifyInstance) {
         include: {
           variante: {
             select: {
+              id: true,
               nombreVariante: true,
               sku: true,
               stockActual: true,
