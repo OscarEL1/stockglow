@@ -264,7 +264,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                     tenantId,
                     varianteId: d.varianteId,
                     usuarioId: internalUserId,
-                    tipo: 'ENTRADA',
+                    tipo: 'SALIDA',
                     cantidad: -d.cantidad,
                     motivo: `Venta #${nuevaVenta.id}`,
                   },

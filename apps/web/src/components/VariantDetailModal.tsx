@@ -116,6 +116,7 @@ function getMovementIcon(tipo: string) {
     case 'ENTRADA':
       return <ArrowDownToLine className="h-4 w-4 text-green-500" />
 
+    case 'SALIDA':
     case 'MERMA':
       return <ArrowUpFromLine className="h-4 w-4 text-red-500" />
 
@@ -132,6 +133,9 @@ function getMovementLabel(tipo: string) {
   switch (tipo) {
     case 'ENTRADA':
       return 'Entrada'
+
+    case 'SALIDA':
+      return 'Salida'
 
     case 'MERMA':
       return 'Merma'
