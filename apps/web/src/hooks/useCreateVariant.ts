@@ -27,6 +27,7 @@ export function useCreateVariant() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['variants'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
     },
   })
 }

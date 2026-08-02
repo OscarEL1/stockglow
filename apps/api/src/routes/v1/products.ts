@@ -84,7 +84,7 @@ export async function productRoutes(fastify: FastifyInstance) {
               success: { type: 'boolean' },
               data: {
                 type: 'array',
-                items: { type: 'object' },
+                items: { type: 'object', additionalProperties: true },
               },
               meta: {
                 type: 'object',
