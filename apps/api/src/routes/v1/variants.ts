@@ -36,7 +36,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       if (!tenant) {
-        throw new Error('No existe la configuración de la tienda')
+        throw Errors.TENANT_CONFIG_NOT_FOUND()
       }
 
       const { fechaCaducidad, stockMinimo, ...variantData } = input
@@ -216,7 +216,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       if (!tenant) {
-        throw new Error('No existe la configuración de la tienda')
+        throw Errors.TENANT_CONFIG_NOT_FOUND()
       }
 
       /*
@@ -491,7 +491,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       if (!usuario) {
-        throw new Error('No existe un usuario registrado para esta tienda')
+        throw Errors.USER_NOT_FOUND()
       }
 
       const [updated] = await prisma.$transaction([
