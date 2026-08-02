@@ -52,12 +52,7 @@ export async function alertRoutes(fastify: FastifyInstance) {
                 type: 'array',
                 items: {
                   type: 'object',
-                  properties: {
-                    id: { type: 'string' },
-                    tipo: { type: 'string', enum: ['BAJO_STOCK', 'CADUCIDAD_PROXIMA'] },
-                    leida: { type: 'boolean' },
-                    createdAt: { type: 'string' },
-                  },
+                  additionalProperties: true,
                 },
               },
             },
