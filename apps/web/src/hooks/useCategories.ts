@@ -10,7 +10,7 @@ export function useCategories() {
     queryFn: async () => {
       const res = await fetchWithAuth(
         getToken,
-        '/api/v1/inventory/products/categories'
+        '/api/v1/settings/categories'
       )
       return res.data as string[]
     },
