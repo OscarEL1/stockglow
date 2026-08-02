@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../lib/prisma.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
+import { ensureUsuario } from '../../lib/ensure-usuario.js'
 import {
   createVariantSchema,
   updateVariantSchema,
@@ -36,7 +37,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       if (!tenant) {
-        throw new Error('No existe la configuración de la tienda')
+        throw Errors.TENANT_CONFIG_NOT_FOUND()
       }
 
       const { fechaCaducidad, stockMinimo, ...variantData } = input
@@ -216,7 +217,7 @@ export async function variantRoutes(fastify: FastifyInstance) {
       })
 
       if (!tenant) {
-        throw new Error('No existe la configuración de la tienda')
+        throw Errors.TENANT_CONFIG_NOT_FOUND()
       }
 
       /*
@@ -483,16 +484,11 @@ export async function variantRoutes(fastify: FastifyInstance) {
         throw Errors.INSUFFICIENT_STOCK()
       }
 
-      const usuario = await prisma.usuario.findFirst({
-        where: {
-          tenantId: request.tenantId,
-          clerkUserId: request.userId,
-        },
-      })
-
-      if (!usuario) {
-        throw new Error('No existe un usuario registrado para esta tienda')
-      }
+      const usuario = await ensureUsuario(
+        request.tenantId,
+        request.userId,
+        request.orgRole
+      )
 
       const [updated] = await prisma.$transaction([
         prisma.varianteProducto.update({

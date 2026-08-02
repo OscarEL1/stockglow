@@ -29,6 +29,7 @@ export function useArchiveVariant() {
       queryClient.invalidateQueries({
         queryKey: ['variants'],
       })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
     },
   })
 }

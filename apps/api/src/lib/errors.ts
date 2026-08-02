@@ -79,6 +79,14 @@ export const Errors = {
       422
     ),
 
+  // Usuarios
+  USER_NOT_FOUND: () =>
+    new AppError('USER_NOT_FOUND', 'No existe un usuario registrado para esta tienda', 404),
+
+  // Tenants
+  TENANT_CONFIG_NOT_FOUND: () =>
+    new AppError('TENANT_CONFIG_NOT_FOUND', 'No existe la configuración de la tienda', 404),
+
   // General
   NOT_FOUND: (resource: string) =>
     new AppError('NOT_FOUND', `${resource} no encontrado`, 404),

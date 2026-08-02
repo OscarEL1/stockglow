@@ -28,6 +28,7 @@ export function VariantHistoryModal({
     switch (tipo) {
       case 'ENTRADA':
         return <ArrowDownToLine className="h-5 w-5 text-green-500" />
+      case 'SALIDA':
       case 'MERMA':
         return <ArrowUpFromLine className="h-5 w-5 text-red-500" />
       case 'CADUCADO':
@@ -42,6 +43,8 @@ export function VariantHistoryModal({
     switch (tipo) {
       case 'ENTRADA':
         return 'Entrada'
+      case 'SALIDA':
+        return 'Salida'
       case 'MERMA':
         return 'Merma'
       case 'CADUCADO':

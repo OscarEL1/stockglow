@@ -9,6 +9,7 @@ interface AlertsPanelProps {
 
 const AlertRow = memo(
   function AlertRow({ alerta }: { alerta: Alert }) {
+    if (!alerta.variante) return null
     const dias = alerta.diasRestantes
     const sugerirPromocion = alerta.sugerirPromocion
 
@@ -90,7 +91,7 @@ const AlertRow = memo(
 )
 
 export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
-  const { data: alerts = [], isLoading, markAsRead } = useAlerts(isOpen)
+  const { data: alerts = [], isLoading, markAllAsRead } = useAlerts(isOpen)
 
   if (!isOpen) return null
 
@@ -154,11 +155,11 @@ export function AlertsPanel({ isOpen, onClose }: AlertsPanelProps) {
           {alerts.length > 0 && (
             <div className="border-t border-gray-100 p-4">
               <button
-                onClick={() => markAsRead.mutate()}
-                disabled={markAsRead.isPending}
+                onClick={() => markAllAsRead.mutate()}
+                disabled={markAllAsRead.isPending}
                 className="w-full rounded-xl bg-gray-900 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:opacity-50"
               >
-                {markAsRead.isPending
+                {markAllAsRead.isPending
                   ? 'Marcando...'
                   : 'Marcar todas como leídas'}
               </button>

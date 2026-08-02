@@ -204,6 +204,7 @@ enum EstadoVenta {
 
 enum TipoMovimiento {
   ENTRADA
+  SALIDA
   AJUSTE
   MERMA
   CADUCADO

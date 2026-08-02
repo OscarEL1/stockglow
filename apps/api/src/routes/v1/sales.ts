@@ -6,6 +6,7 @@ import { acquireLock, releaseLock, lockKey } from '../../lib/redis.js'
 import { emitToTenant } from '../../plugins/websocket.js'
 import { successResponse } from '../../lib/response.js'
 import { Errors } from '../../lib/errors.js'
+import { ensureUsuario } from '../../lib/ensure-usuario.js'
 import { createSaleSchema } from '../../schemas/sale.schema.js'
 
 interface DetalleItem {
@@ -156,21 +157,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const input = createSaleSchema.parse(request.body)
       const { tenantId, userId } = request
 
-      const usuarioInterno = await prisma.usuario.findFirst({
-        where: { clerkUserId: userId, tenantId },
-        select: { id: true },
-      })
-
-      if (!usuarioInterno) {
-        return reply.status(403).send({
-          success: false,
-          error: {
-            code: 'USER_NOT_FOUND',
-            message: 'Usuario no registrado en esta organizacion',
-            statusCode: 403,
-          },
-        })
-      }
+      const usuarioInterno = await ensureUsuario(tenantId, userId, request.orgRole)
 
       const internalUserId = usuarioInterno.id
 
@@ -277,7 +264,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
                     tenantId,
                     varianteId: d.varianteId,
                     usuarioId: internalUserId,
-                    tipo: 'ENTRADA',
+                    tipo: 'SALIDA',
                     cantidad: -d.cantidad,
                     motivo: `Venta #${nuevaVenta.id}`,
                   },
@@ -373,21 +360,7 @@ export async function saleRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string }
       const { tenantId, userId } = request
 
-      const usuarioInterno = await prisma.usuario.findFirst({
-        where: { clerkUserId: userId, tenantId },
-        select: { id: true },
-      })
-
-      if (!usuarioInterno) {
-        return reply.status(403).send({
-          success: false,
-          error: {
-            code: 'USER_NOT_FOUND',
-            message: 'Usuario no registrado en esta organizacion',
-            statusCode: 403,
-          },
-        })
-      }
+      const usuarioInterno = await ensureUsuario(tenantId, userId, request.orgRole)
 
       const venta = await prisma.venta.findFirst({
         where: { id, tenantId },

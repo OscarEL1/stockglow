@@ -200,12 +200,7 @@ export async function settingsRoutes(fastify: FastifyInstance) {
               data: {
                 type: 'array',
                 items: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string' },
-                    nombre: { type: 'string' },
-                    tenantId: { type: 'string' },
-                  },
+                  type: 'string',
                 },
               },
             },
