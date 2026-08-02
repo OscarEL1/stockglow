@@ -1,9 +1,8 @@
-import { clerkClient } from '@clerk/fastify'
 import { prisma } from './prisma.js'
 
 /**
  * Asegura que exista un registro de usuario en la BD para el tenant dado.
- * Si no existe, lo crea. Si Clerk falla, crea un registro con datos placeholder.
+ * Si no existe, lo crea con datos placeholder.
  */
 export async function ensureUsuario(
   tenantId: string,
@@ -23,26 +22,14 @@ export async function ensureUsuario(
     update: {},
   })
 
-  let nombre = 'Usuario'
-  let email = `${clerkUserId.slice(-8)}@placeholder.stockglow`
-
-  try {
-    const clerkUser = await clerkClient.users.getUser(clerkUserId)
-    email =
-      clerkUser.emailAddresses?.[0]?.emailAddress ?? email
-    nombre =
-      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
-      nombre
-  } catch {
-    // Clerk no disponible o usuario no encontrado, usar datos placeholder
-  }
+  const email = `user-${clerkUserId.slice(-8)}@stockglow.local`
 
   return prisma.usuario.upsert({
     where: { clerkUserId },
     create: {
       tenantId,
       clerkUserId,
-      nombre,
+      nombre: 'Usuario',
       email,
       rol: orgRole === 'org:admin' ? 'OWNER' : 'EMPLOYEE',
     },
