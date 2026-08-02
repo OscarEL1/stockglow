@@ -3,8 +3,7 @@ import { prisma } from './prisma.js'
 
 /**
  * Asegura que exista un registro de usuario en la BD para el tenant dado.
- * Si no existe, lo crea usando los datos de Clerk.
- * Retorna el usuario (con solo `id`).
+ * Si no existe, lo crea. Si Clerk falla, crea un registro con datos placeholder.
  */
 export async function ensureUsuario(
   tenantId: string,
@@ -24,13 +23,19 @@ export async function ensureUsuario(
     update: {},
   })
 
-  const clerkUser = await clerkClient.users.getUser(clerkUserId)
-  const email =
-    clerkUser.emailAddresses?.[0]?.emailAddress ??
-    `${clerkUserId}@placeholder.com`
-  const nombre =
-    [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
-    'Usuario'
+  let nombre = 'Usuario'
+  let email = `${clerkUserId.slice(-8)}@placeholder.stockglow`
+
+  try {
+    const clerkUser = await clerkClient.users.getUser(clerkUserId)
+    email =
+      clerkUser.emailAddresses?.[0]?.emailAddress ?? email
+    nombre =
+      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
+      nombre
+  } catch {
+    // Clerk no disponible o usuario no encontrado, usar datos placeholder
+  }
 
   return prisma.usuario.upsert({
     where: { clerkUserId },
